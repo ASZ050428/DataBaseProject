@@ -1,0 +1,5 @@
+/* 全局最小样式，用于登录页 */
+html,body,#app{height:100%}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f5f7fb}
+
+/* 如果 App.vue 中的 #app-root 设定了布局，这里主要留给其他全局样式 */

@@ -22,7 +22,7 @@
             <div v-if="currentContent === 'favoriteSongsList'" class="fav-group">
                 <div class="group-header">
                     <h3>收藏列表</h3>
-                    <button class="add-list" @click="addList">添加收藏列表</button>
+                    <button class="add-list" @click="showAddListModal = true">添加收藏列表</button>
                 </div>
                 <div v-if="favoriteSongsList.length === 0" class="empty-tip">暂无收藏歌曲</div>
                 <ul v-else class="fav-list">
@@ -30,7 +30,7 @@
                         <div class="fav-info">
                             <div class="fav-title">{{ song.title }}</div>
                         </div>
-                        <button class="remove-btn" @click="removeList">💔</button>
+                        <button class="remove-btn" @click="removeList(song.id)">💔</button>
                     </li>
                 </ul>
             </div>
@@ -44,7 +44,7 @@
                         <div class="fav-info">
                             <div class="fav-title">{{ album.title }}</div>
                         </div>
-                        <button class="remove-btn" @click="removeAlbum">💔</button>
+                        <button class="remove-btn" @click="removeAlbum(album.id)">💔</button>
                     </li>
                 </ul>
             </div>
@@ -58,7 +58,7 @@
                         <div class="fav-info">
                             <div class="fav-title">{{ artist.title }}</div>
                         </div>
-                        <button class="remove-btn" @click="removeArtist">💔</button>
+                        <button class="remove-btn" @click="removeArtist(artist.id)">💔</button>
                     </li>
                 </ul>
             </div>
@@ -67,22 +67,65 @@
             <h2>修改个人信息</h2>
             <div class="info-item">
                 <span class="label">用户名</span>
-                <input type="text" placeholder="请输入新的用户名" />
+                <input type="text" v-model="username" placeholder="请输入新的用户名" />
                 <button>保存</button>
             </div>
             <div class="info-item">
                 <span class="label">密码</span>
-                <input type="text" placeholder="请输入新的密码" />
+                <input type="password" v-model="password" placeholder="请输入新的密码" />
                 <button>保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加收藏列表的弹窗 -->
+    <div v-if="showAddListModal" class="modal-overlay" @click.self="showAddListModal = false">
+        <div class="modal-content">
+            <h3>添加收藏列表</h3>
+            <input v-model="newListName" placeholder="请输入列表名称" class="modal-input" />
+            <div class="modal-actions">
+                <button @click="addList" class="confirm-btn">确认添加</button>
+                <button @click="showAddListModal = false" class="cancel-btn">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 确认删除弹窗 -->
+    <div v-if="showConfirmWindow" class="modal-overlay" @click.self="showConfirmWindow = false">
+        <div class="modal-content">
+            <h3>确认删除？</h3>
+            <div class="modal-delete-actions">
+                <button @click="confirmDelete" class="confirm-btn">确认</button>
+                <button @click="showConfirmWindow = false" class="cancel-btn">取消</button>
             </div>
         </div>
     </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 
 const currentContent = ref('favoriteSongsList')
+const username = ref('')
+const password = ref('')
+const showAddListModal = ref(false)
+const showConfirmWindow = ref(false)
+const newListName = ref('')
+const pendingDelete = ref(null)
+
+// 页面加载时读取用户信息
+onMounted(() => {
+    try {
+        const userStr = localStorage.getItem('user')
+        if (userStr) {
+            const user = JSON.parse(userStr)
+            username.value = user.username || ''
+            password.value = user.password || ''
+        }
+    } catch (e) {
+        console.error('读取用户信息失败', e)
+    }
+})
 
 // 模拟的收藏数据
 const favoriteSongsList = ref([
@@ -104,19 +147,45 @@ const favoriteArtists = ref([
 ])
 
 function addList() {
-    alert('添加收藏列表功能尚未实现')
+    if (!newListName.value.trim()) {
+        alert('请输入列表名称')
+        return
+    }
+    const newId = favoriteSongsList.value.length + 1
+    favoriteSongsList.value.push({ id: newId, title: newListName.value })
+    newListName.value = '' // 清空输入框
+    showAddListModal.value = false // 关闭弹窗
 }
 
-function removeList() {
-    alert('删除收藏列表功能尚未实现')
+function removeList(id) {
+    pendingDelete.value = { type: 'list', id }
+    showConfirmWindow.value = true
 }
 
-function removeAlbum() {
-    alert('删除收藏专辑功能尚未实现')
+function removeAlbum(id) {
+    pendingDelete.value = { type: 'album', id }
+    showConfirmWindow.value = true
 }
 
-function removeArtist() {
-    alert('取消关注歌手功能尚未实现')
+function removeArtist(id) {
+    pendingDelete.value = { type: 'artist', id }
+    showConfirmWindow.value = true
+}
+
+function confirmDelete() {
+    if (!pendingDelete.value) return
+    
+    const { type, id } = pendingDelete.value
+    if (type === 'list') {
+        favoriteSongsList.value = favoriteSongsList.value.filter(item => item.id !== id)
+    } else if (type === 'album') {
+        favoriteAlbums.value = favoriteAlbums.value.filter(item => item.id !== id)
+    } else if (type === 'artist') {
+        favoriteArtists.value = favoriteArtists.value.filter(item => item.id !== id)
+    }
+    
+    showConfirmWindow.value = false
+    pendingDelete.value = null
 }
 </script>
 
@@ -165,7 +234,7 @@ function removeArtist() {
     margin-top: 20px;
     text-align: left;
     margin-left: 30px;
-    max-width: 600px;
+    margin-right: 30px;
     /* 限制宽度，防止列表太宽 */
 }
 
@@ -315,5 +384,89 @@ function removeArtist() {
 .info-item button:hover {
     background-color: #3298eb;
     /* 悬停加深 */
+}
+
+/* 弹窗样式 */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    padding: 24px;
+    border-radius: 12px;
+    width: 400px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.modal-content h3 {
+    margin: 0;
+    color: #333;
+    text-align: center;
+}
+
+.modal-input {
+    padding: 10px;
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+    font-size: 16px;
+    outline: none;
+    transition: border-color 0.3s;
+}
+
+.modal-input:focus {
+    border-color: #2563eb;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.modal-delete-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.modal-actions button,
+.modal-delete-actions button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.confirm-btn {
+    background-color: #4caf50;
+    color: white;
+}
+
+.confirm-btn:hover {
+    background-color: #45a049;
+}
+
+.cancel-btn {
+    background-color: #f5f5f5;
+    color: #666;
+}
+
+.cancel-btn:hover {
+    background-color: #e0e0e0;
 }
 </style>

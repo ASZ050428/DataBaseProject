@@ -15,7 +15,7 @@
 
 <script setup>
 import { ref } from 'vue'
-//import { login } from '../api/auth'
+import { login } from '../api/auth'
 
 // 声明 emits（替代 Options API 中的 emits: []）
 const emit = defineEmits(['success'])
@@ -33,11 +33,16 @@ const submit = async () => {
   }
   loading.value = true
   try {
-    const data = ({
+    const resp = await login({
       username: identifier.value,
       password: password.value
     })
-    emit('success', data)
+    const tokens = resp?.data || resp
+    emit('success', {
+      username: identifier.value,
+      access: tokens.access,
+      refresh: tokens.refresh
+    })
   } catch (e) {
     error.value = e.message || '登录失败'
   } finally {

@@ -1,6 +1,5 @@
 {
 	"dependencies": {
-		"frontend": "link:",
 		"vue": "3"
 	},
 	"scripts": {

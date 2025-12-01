@@ -35,12 +35,20 @@ const submit = async () => {
     }
     loading.value = true
     try {
-        const user = {
-            username: username.value,
-            email: email.value,
-            password: password.value
+        const res = await fetch('/api/auth/register/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                username: username.value,
+                password: password.value,
+                profile: {}
+            })
+        })
+        const data = await res.json().catch(() => ({ detail: res.statusText }))
+        if (!res.ok || (typeof data.code !== 'undefined' && data.code !== 0)) {
+            throw new Error(data.detail || '注册失败')
         }
-        emit('success', user)
+        emit('success', { username: username.value, password: password.value })
     } catch (e) {
         error.value = e.message || '注册失败'
     } finally {

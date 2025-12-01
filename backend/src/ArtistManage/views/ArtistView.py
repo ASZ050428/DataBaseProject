@@ -5,6 +5,8 @@ from UserManage.serializers.UserSerializer import UserSerializer, RegisterSerial
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from utils.response import api_response
+from ArtistManage.models.Aritist import Artist
 from common.views import ( 
     BaseTokenObtainPairView,
     BaseRegisterView,
@@ -19,6 +21,26 @@ class CustomTokenObtainPairView(BaseTokenObtainPairView):
 class RegisterView(BaseRegisterView):
     queryset = User.objects.all()
     serializer_class = RegisterSerializer
+
+class ArtistRegisterView(APIView):
+    """歌手注册：创建用户账号并标记角色为 artist，同时创建 Artist 记录"""
+    permission_classes = []
+    def post(self, request):
+        username = request.data.get('username')
+        password = request.data.get('password')
+        artist_name = request.data.get('name') or username
+        if not username or not password:
+            return api_response(code=1, message='缺少用户名或密码', data=None)
+        if User.objects.filter(username=username).exists():
+            return api_response(code=2, message='用户名已存在', data=None)
+        user = User.objects.create_user(username=username, password=password)
+        # 创建或更新资料角色
+        profile, _ = UserProfile.objects.get_or_create(user=user)
+        profile.roles = 'artist'
+        profile.save()
+        # 创建 Artist 业务实体
+        Artist.objects.create(name=artist_name)
+        return api_response(code=0, message='歌手注册成功', data={'user_id': user.id, 'username': username})
 
 # 个人资料视图：继承基类逻辑，专注于 Artist 特有的特有处理
 class ProfileView(generics.RetrieveUpdateAPIView):

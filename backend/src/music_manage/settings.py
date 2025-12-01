@@ -24,18 +24,11 @@ ALLOWED_HOSTS = ['*']
 HOSTNAME = ALLOWED_HOSTS[0]
 
 from datetime import timedelta
-# JWT 配置
-SIMPLE_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ),
-    'DEFAULT_AUTH_TOKEN_CLASSES': (
-        'rest_framework_simplejwt.tokens.AccessToken',
-    ),
-    'TOKEN_lifetime': {
-        'ACCESS_TOKEN_LIFETIME': timedelta(hours=1),
-        'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
-    }
+# JWT 配置（修正为 SIMPLE_JWT 生效的键）
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=1),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
 # 应用配置

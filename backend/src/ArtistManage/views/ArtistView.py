@@ -12,6 +12,7 @@ from common.views import (
     BaseRegisterView,
     BaseReadOnlyViewSet
 )
+from django.db import connection
 
 # 复用基类的JWT令牌视图，无需重复实现
 class CustomTokenObtainPairView(BaseTokenObtainPairView):
@@ -41,6 +42,37 @@ class ArtistRegisterView(APIView):
         # 创建 Artist 业务实体
         Artist.objects.create(name=artist_name)
         return api_response(code=0, message='歌手注册成功', data={'user_id': user.id, 'username': username})
+
+class UpgradeArtistView(APIView):
+    """普通用户升级为歌手（SQL实现）"""
+    permission_classes = [permissions.IsAuthenticated]
+    def post(self, request):
+        user_id = request.user.id
+        name = request.data.get('name') or request.user.username
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT roles FROM user_profile WHERE user_id=%s", [user_id])
+            row = cursor.fetchone()
+        if row and (row[0] or '') == 'artist':
+            return api_response(code=0, message='用户已是歌手', data={'user_id': user_id})
+        with connection.cursor() as cursor:
+            if row:
+                cursor.execute("UPDATE user_profile SET roles='artist' WHERE user_id=%s", [user_id])
+            else:
+                cursor.execute("INSERT INTO user_profile (user_id, roles) VALUES (%s, 'artist')", [user_id])
+        artist_id = None
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT artist_id FROM artist WHERE name=%s", [name])
+            arow = cursor.fetchone()
+            if not arow:
+                cursor.execute("INSERT INTO artist (name, create_time, update_time) VALUES (%s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)", [name])
+                artist_id = cursor.lastrowid
+                if not artist_id:
+                    cursor.execute("SELECT artist_id FROM artist WHERE name=%s ORDER BY artist_id DESC LIMIT 1", [name])
+                    r = cursor.fetchone()
+                    artist_id = r[0] if r else None
+            else:
+                artist_id = arow[0]
+        return api_response(code=0, message='升级成功', data={'user_id': user_id, 'artist_id': artist_id, 'name': name})
 
 # 个人资料视图：继承基类逻辑，专注于 Artist 特有的特有处理
 class ProfileView(generics.RetrieveUpdateAPIView):

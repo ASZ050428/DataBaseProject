@@ -6,10 +6,6 @@
             <input v-model="username" type="text" />
         </label>
         <label>
-            邮箱
-            <input v-model="email" type="email" />
-        </label>
-        <label>
             密码
             <input v-model="password" type="password" />
         </label>
@@ -19,36 +15,32 @@
 
 <script setup>
 import { ref } from 'vue'
+import { register } from '../api/auth'
 
 const emit = defineEmits(['success'])
 const username = ref('')
-const email = ref('')
 const password = ref('')
 const loading = ref(false)
 const error = ref(null)
 
 const submit = async () => {
     error.value = null
-    if (!username.value || !email.value || !password.value) {
+    if (!username.value || !password.value) {
         error.value = '请填写所有字段'
         return
     }
     loading.value = true
     try {
-        const res = await fetch('/api/auth/register/', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                username: username.value,
-                password: password.value,
-                profile: {}
-            })
+        const resp = await register({
+            username: username.value,
+            password: password.value,
+            profile: {}
         })
-        const data = await res.json().catch(() => ({ detail: res.statusText }))
-        if (!res.ok || (typeof data.code !== 'undefined' && data.code !== 0)) {
-            throw new Error(data.detail || '注册失败')
-        }
-        emit('success', { username: username.value, password: password.value })
+        const tokens = resp?.data || resp
+        emit('success', {
+            username: tokens.username,
+            password: tokens.password
+        })
     } catch (e) {
         error.value = e.message || '注册失败'
     } finally {

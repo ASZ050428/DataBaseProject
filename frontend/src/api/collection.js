@@ -109,3 +109,16 @@ export async function removeFavoriteArtist(artistId) {
     }
     return true
 }
+
+export async function getCollectionListSongs(listId) {
+    const res = await fetch(`/api/collection/my/lists/${listId}/songs/`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+    })
+
+    const data = await res.json()
+    if (!res.ok || (typeof data.code !== 'undefined' && data.code !== 0)) {
+        throw new Error(data.message || '获取歌单歌曲失败')
+    }
+    return data.data
+}

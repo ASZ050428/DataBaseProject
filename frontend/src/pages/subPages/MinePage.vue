@@ -20,19 +20,41 @@
         <div v-if="currentContent != 'personalInfo'" class="favorites-section">
             <h2>我的收藏</h2>
             <div v-if="currentContent === 'favoriteSongsList'" class="fav-group">
-                <div class="group-header">
-                    <h3>收藏列表</h3>
-                    <button class="add-list" @click="showAddListModal = true">添加收藏列表</button>
+                <!-- 列表模式 -->
+                <div v-if="!currentCollectionId">
+                    <div class="group-header">
+                        <h3>收藏列表</h3>
+                        <button class="add-list" @click="showAddListModal = true">添加收藏列表</button>
+                    </div>
+                    <div v-if="favoriteSongsList.length === 0" class="empty-tip">暂无收藏歌曲</div>
+                    <ul v-else class="fav-list">
+                        <li v-for="list in favoriteSongsList" :key="list.id" class="fav-item" @click="showCollectionList(list)">
+                            <div class="fav-info">
+                                <div class="fav-title">{{ list.title }}</div>
+                            </div>
+                            <button class="remove-btn" @click.stop="removeList(list.id)">💔</button>
+                        </li>
+                    </ul>
                 </div>
-                <div v-if="favoriteSongsList.length === 0" class="empty-tip">暂无收藏歌曲</div>
-                <ul v-else class="fav-list">
-                    <li v-for="song in favoriteSongsList" :key="song.id" class="fav-item">
-                        <div class="fav-info">
-                            <div class="fav-title">{{ song.title }}</div>
+
+                <!-- 详情模式 -->
+                <div v-else>
+                    <div class="group-header">
+                        <div class="header-left">
+                            <button class="back-btn" @click="backToCollections">返回</button>
+                            <h3>{{ currentCollectionListName }}</h3>
                         </div>
-                        <button class="remove-btn" @click="removeList(song.id)">💔</button>
-                    </li>
-                </ul>
+                    </div>
+                    <div v-if="currentCollectionListSongs.length === 0" class="empty-tip">此歌单暂无歌曲</div>
+                    <ul v-else class="fav-list">
+                        <li v-for="song in currentCollectionListSongs" :key="song.id" class="fav-item">
+                            <div class="fav-info">
+                                <div class="fav-title">{{ song.title }}</div>
+                            </div>
+                            <button class="remove-btn" @click="removeSongFromList(song.id)">💔</button>
+                        </li>
+                    </ul>
+                </div>
             </div>
             <div v-if="currentContent === 'favoriteAlbums'" class="fav-group">
                 <div class="group-header">
@@ -111,21 +133,29 @@ import {
     getFavoriteAlbums, 
     removeFavoriteAlbum,
     getFavoriteArtists, 
-    removeFavoriteArtist 
+    removeFavoriteArtist,
+    getCollectionListSongs
 } from '../../api/collection'
 
 const currentContent = ref('favoriteSongsList')
 const username = ref('')
 const password = ref('')
+// 控制弹窗显示
 const showAddListModal = ref(false)
 const showConfirmWindow = ref(false)
+// 新收藏列表名称
 const newListName = ref('')
+// 待删除项
 const pendingDelete = ref(null)
+// 当前选中的收藏列表名称
+const currentCollectionListName = ref('')
+const currentCollectionId = ref(null)
 
 // 收藏数据 (初始化为空数组，防止页面报错)
 const favoriteSongsList = ref([])
 const favoriteAlbums = ref([])
 const favoriteArtists = ref([])
+const currentCollectionListSongs = ref([])
 
 // 页面加载时读取用户信息及收藏数据
 onMounted(async () => {
@@ -138,13 +168,13 @@ onMounted(async () => {
         }
         
         // 并行加载所有数据
-        const [songsData, albumsData, artistsData] = await Promise.all([
+        const [listsData, albumsData, artistsData] = await Promise.all([
             getCollectionsList(),
             getFavoriteAlbums(),
             getFavoriteArtists()
         ])
 
-        favoriteSongsList.value = songsData || []
+        favoriteSongsList.value = listsData || []
         favoriteAlbums.value = albumsData || []
         favoriteArtists.value = artistsData || []
 
@@ -153,6 +183,7 @@ onMounted(async () => {
     }
 })
 
+// 添加收藏列表
 async function addList() {
     if (!newListName.value.trim()) {
         alert('请输入列表名称')
@@ -172,6 +203,30 @@ async function addList() {
         alert(e.message || '添加失败')
     }
 }
+
+// 显示歌单歌曲内容
+async function showCollectionList(list) {
+    try {
+        currentCollectionListName.value = list.title
+        currentCollectionId.value = list.id
+        const songs = await getCollectionListSongs(list.id)
+        currentCollectionListSongs.value = songs || []
+    } catch (e) {
+        alert(e.message || '加载歌单歌曲失败')
+    }
+}
+
+function backToCollections() {
+    currentCollectionId.value = null
+    currentCollectionListSongs.value = []
+    currentCollectionListName.value = ''
+}
+
+function removeSongFromList(songId) {
+    // TODO: 待实现移除功能
+    alert('移除歌曲功能开发中...')
+}
+
 
 function removeList(id) {
     pendingDelete.value = { type: 'list', id }
@@ -490,5 +545,26 @@ async function confirmDelete() {
 
 .cancel-btn:hover {
     background-color: #e0e0e0;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.back-btn {
+    padding: 6px 12px;
+    background-color: #ed3a3a;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    color: white;
+    transition: all 0.3s;
+}
+
+.back-btn:hover {
+    background-color: #b11a1a;
 }
 </style>

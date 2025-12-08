@@ -104,6 +104,15 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { 
+    getCollectionsList, 
+    addCollection, 
+    deleteCollection,
+    getFavoriteAlbums, 
+    removeFavoriteAlbum,
+    getFavoriteArtists, 
+    removeFavoriteArtist 
+} from '../../api/collection'
 
 const currentContent = ref('favoriteSongsList')
 const username = ref('')
@@ -113,8 +122,13 @@ const showConfirmWindow = ref(false)
 const newListName = ref('')
 const pendingDelete = ref(null)
 
-// 页面加载时读取用户信息
-onMounted(() => {
+// 收藏数据 (初始化为空数组，防止页面报错)
+const favoriteSongsList = ref([])
+const favoriteAlbums = ref([])
+const favoriteArtists = ref([])
+
+// 页面加载时读取用户信息及收藏数据
+onMounted(async () => {
     try {
         const userStr = localStorage.getItem('user')
         if (userStr) {
@@ -122,39 +136,41 @@ onMounted(() => {
             username.value = user.username || ''
             password.value = user.password || ''
         }
+        
+        // 并行加载所有数据
+        const [songsData, albumsData, artistsData] = await Promise.all([
+            getCollectionsList(),
+            getFavoriteAlbums(),
+            getFavoriteArtists()
+        ])
+
+        favoriteSongsList.value = songsData || []
+        favoriteAlbums.value = albumsData || []
+        favoriteArtists.value = artistsData || []
+
     } catch (e) {
-        console.error('读取用户信息失败', e)
+        console.error('加载数据失败', e)
     }
 })
 
-// 模拟的收藏数据
-const favoriteSongsList = ref([
-    { id: 1, title: '收藏列表1' },
-    { id: 2, title: '收藏列表2' },
-    { id: 3, title: '收藏列表3' },
-])
-
-const favoriteAlbums = ref([
-    { id: 1, title: '专辑1' },
-    { id: 2, title: '专辑2' },
-    { id: 3, title: '专辑3' },
-])
-
-const favoriteArtists = ref([
-    { id: 1, title: '歌手1' },
-    { id: 2, title: '歌手2' },
-    { id: 3, title: '歌手3' },
-])
-
-function addList() {
+async function addList() {
     if (!newListName.value.trim()) {
         alert('请输入列表名称')
         return
     }
-    const newId = favoriteSongsList.value.length + 1
-    favoriteSongsList.value.push({ id: newId, title: newListName.value })
-    newListName.value = '' // 清空输入框
-    showAddListModal.value = false // 关闭弹窗
+    
+    try {
+        // 1. 提交到后端
+        const newList = await addCollection(newListName.value)
+        
+        // 2. 后端返回成功后，直接添加到本地列表头部 (无需重新获取整个列表)
+        favoriteSongsList.value.unshift(newList)
+        
+        newListName.value = '' // 清空输入框
+        showAddListModal.value = false // 关闭弹窗
+    } catch (e) {
+        alert(e.message || '添加失败')
+    }
 }
 
 function removeList(id) {
@@ -172,20 +188,26 @@ function removeArtist(id) {
     showConfirmWindow.value = true
 }
 
-function confirmDelete() {
+async function confirmDelete() {
     if (!pendingDelete.value) return
     
     const { type, id } = pendingDelete.value
-    if (type === 'list') {
-        favoriteSongsList.value = favoriteSongsList.value.filter(item => item.id !== id)
-    } else if (type === 'album') {
-        favoriteAlbums.value = favoriteAlbums.value.filter(item => item.id !== id)
-    } else if (type === 'artist') {
-        favoriteArtists.value = favoriteArtists.value.filter(item => item.id !== id)
+    try {
+        if (type === 'list') {
+            await deleteCollection(id)
+            favoriteSongsList.value = favoriteSongsList.value.filter(item => item.id !== id)
+        } else if (type === 'album') {
+            await removeFavoriteAlbum(id)
+            favoriteAlbums.value = favoriteAlbums.value.filter(item => item.id !== id)
+        } else if (type === 'artist') {
+            await removeFavoriteArtist(id)
+            favoriteArtists.value = favoriteArtists.value.filter(item => item.id !== id)
+        }
+        showConfirmWindow.value = false
+        pendingDelete.value = null
+    } catch (e) {
+        alert(e.message || '删除失败')
     }
-    
-    showConfirmWindow.value = false
-    pendingDelete.value = null
 }
 </script>
 

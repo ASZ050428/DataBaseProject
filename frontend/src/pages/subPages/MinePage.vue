@@ -97,6 +97,32 @@
                 <input type="password" v-model="password" placeholder="请输入新的密码" />
                 <button>保存</button>
             </div>
+            
+            <!-- 升级歌手入口 -->
+            <div class="upgrade-section" v-if="!isArtist">
+                <div class="divider"></div>
+                <h3>成为创作者</h3>
+                <p class="upgrade-desc">升级为歌手账号，发布属于你的音乐作品</p>
+                <button class="upgrade-btn" @click="showUpgradeModal = true; artistName = username">立即升级</button>
+            </div>
+            <div class="upgrade-section" v-else>
+                <div class="divider"></div>
+                <h3>创作者中心</h3>
+                <p class="upgrade-desc">您已是认证歌手，快去发布作品吧！</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 升级歌手弹窗 -->
+    <div v-if="showUpgradeModal" class="modal-overlay" @click.self="showUpgradeModal = false">
+        <div class="modal-content">
+            <h3>申请成为歌手</h3>
+            <p class="modal-tip">请输入您的艺名（默认为用户名）</p>
+            <input v-model="artistName" :placeholder="username" class="modal-input" />
+            <div class="modal-actions">
+                <button @click="handleUpgrade" class="confirm-btn">确认申请</button>
+                <button @click="showUpgradeModal = false" class="cancel-btn">取消</button>
+            </div>
         </div>
     </div>
 
@@ -136,10 +162,15 @@ import {
     removeFavoriteArtist,
     getCollectionListSongs
 } from '../../api/collection'
+import { upgradeToArtist } from '../../api/user'
 
 const currentContent = ref('favoriteSongsList')
 const username = ref('')
 const password = ref('')
+const isArtist = ref(false)
+const showUpgradeModal = ref(false)
+const artistName = ref('')
+
 // 控制弹窗显示
 const showAddListModal = ref(false)
 const showConfirmWindow = ref(false)
@@ -165,6 +196,7 @@ onMounted(async () => {
             const user = JSON.parse(userStr)
             username.value = user.username || ''
             password.value = user.password || ''
+            isArtist.value = user.role === 'artist'
         }
         
         // 并行加载所有数据
@@ -182,6 +214,27 @@ onMounted(async () => {
         console.error('加载数据失败', e)
     }
 })
+
+async function handleUpgrade() {
+    if (!artistName.value.trim()) {
+        alert('请输入歌手名称')
+        return
+    }
+    try {
+        await upgradeToArtist(artistName.value)
+        alert('升级成功！请重新登录以生效')
+        // 更新本地存储的角色信息
+        const userStr = localStorage.getItem('user')
+        if (userStr) {
+            const user = JSON.parse(userStr)
+            user.role = 'artist'
+            localStorage.setItem('user', JSON.stringify(user))
+        }
+        window.location.reload()
+    } catch (e) {
+        alert(e.message || '升级失败')
+    }
+}
 
 // 添加收藏列表
 async function addList() {
@@ -566,5 +619,46 @@ async function confirmDelete() {
 
 .back-btn:hover {
     background-color: #b11a1a;
+}
+
+.upgrade-section {
+    margin-top: 40px;
+    max-width: 500px;
+}
+
+.divider {
+    height: 1px;
+    background-color: #eee;
+    margin-bottom: 20px;
+}
+
+.upgrade-desc {
+    color: #666;
+    font-size: 14px;
+    margin: 10px 0 20px;
+}
+
+.upgrade-btn {
+    padding: 10px 24px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 25px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 15px rgba(118, 75, 162, 0.3);
+}
+
+.upgrade-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(118, 75, 162, 0.4);
+}
+
+.modal-tip {
+    font-size: 14px;
+    color: #888;
+    margin: -10px 0 10px;
+    text-align: center;
 }
 </style>

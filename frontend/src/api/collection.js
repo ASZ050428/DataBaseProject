@@ -1,5 +1,5 @@
 // 获取本地存储的 Token
-function getAuthHeaders() {
+export function getAuthHeaders() {
     const user = JSON.parse(localStorage.getItem('user') || '{}')
     const token = user.access
     const headers = {

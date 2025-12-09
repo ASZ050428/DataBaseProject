@@ -41,7 +41,9 @@ const submit = async () => {
     emit('success', {
       username: identifier.value,
       access: tokens.access,
-      refresh: tokens.refresh
+      refresh: tokens.refresh,
+      role: tokens.role,
+      userId: tokens.user_id
     })
   } catch (e) {
     error.value = e.message || '登录失败'

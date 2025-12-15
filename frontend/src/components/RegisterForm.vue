@@ -33,8 +33,7 @@ const submit = async () => {
     try {
         const resp = await register({
             username: username.value,
-            password: password.value,
-            profile: {}
+            password: password.value
         })
         const tokens = resp?.data || resp
         emit('success', {

@@ -38,3 +38,9 @@ urlpatterns = [
     path('api/auth/verify/', VerifyPasswordView.as_view(), name='auth-verify'),
     path('api/auth/type/', IdentifyTypeView.as_view(), name='auth-type'),
 ]
+
+from django.conf import settings
+from django.conf.urls.static import static
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

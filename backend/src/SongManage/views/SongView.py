@@ -1,9 +1,14 @@
 from rest_framework import viewsets, filters, serializers, permissions
 from rest_framework.views import APIView
+from rest_framework.parsers import MultiPartParser, FormParser
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
+from django.conf import settings
+import os
 from SongManage.models import Song
 from common.views import BaseReadOnlyViewSet
 from utils.response import api_response
-from ArtistManage.models.Aritist import Artist
+from ArtistManage.models import Artist
 from AlbumManage.models import Album
 from django.utils.dateparse import parse_date
 from django.db import connection
@@ -77,19 +82,46 @@ class SongViewSet(BaseReadOnlyViewSet):
 
 class MySongCreateView(APIView):
     permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+
     def post(self, request):
         role = getattr(getattr(request.user, 'profile', None), 'roles', '')
         if role != 'artist':
             return api_response(code=1, message='仅歌手可创建歌曲', data=None)
+        
         title = request.data.get('title')
         artist_id = request.data.get('artist_id')
         album_id = request.data.get('album_id')
         duration = request.data.get('duration')
         release_date = request.data.get('release_date')
-        audio_url = request.data.get('audio_url')
+        # audio_url = request.data.get('audio_url') # 不再从 body 获取 URL
         cover_url = request.data.get('cover_url')
-        if not title or not artist_id or not duration or not release_date or not audio_url:
-            return api_response(code=2, message='缺少参数', data=None)
+        
+        # 获取上传的文件
+        audio_file = request.FILES.get('audio_file')
+
+        # 尝试自动获取 artist_id
+        if not artist_id:
+            # 通过 user_become_artist 关联表查找 (SQL)
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT artist_id FROM user_become_artist WHERE user_id=%s", 
+                    [request.user.id]
+                )
+                row = cursor.fetchone()
+                if row:
+                    artist_id = row[0]
+
+        if not title or not artist_id or not duration or not release_date or not audio_file:
+            return api_response(code=2, message='缺少参数 (需包含 audio_file, title, duration, release_date) 或 无法识别歌手身份', data=None)
+        
+        # 保存文件
+        file_path = os.path.join('songs', audio_file.name)
+        # 如果文件名重复，default_storage 会自动重命名
+        saved_path = default_storage.save(file_path, ContentFile(audio_file.read()))
+        # 生成 URL
+        audio_url = os.path.join(settings.MEDIA_URL, saved_path).replace('\\', '/')
+
         with connection.cursor() as cursor:
             cursor.execute("SELECT 1 FROM artist WHERE artist_id=%s", [artist_id])
             arow = cursor.fetchone()
@@ -118,4 +150,4 @@ class MySongCreateView(APIView):
                 )
                 r = cursor.fetchone()
                 new_id = r[0] if r else None
-        return api_response(message='创建成功', data={'id': new_id, 'title': title})
+        return api_response(message='创建成功', data={'id': new_id, 'title': title, 'url': audio_url})

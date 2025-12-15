@@ -109,6 +109,42 @@
                 <div class="divider"></div>
                 <h3>创作者中心</h3>
                 <p class="upgrade-desc">您已是认证歌手，快去发布作品吧！</p>
+                <button class="upgrade-btn" @click="showUploadModal = true">上传歌曲</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 上传歌曲弹窗 -->
+    <div v-if="showUploadModal" class="modal-overlay" @click.self="showUploadModal = false">
+        <div class="modal-content upload-modal">
+            <h3>上传歌曲</h3>
+            <div class="form-group">
+                <label>歌曲标题</label>
+                <input v-model="uploadForm.title" placeholder="请输入歌曲标题" class="modal-input" />
+            </div>
+            <div class="form-group">
+                <label>音频文件</label>
+                <input type="file" accept="audio/*" @change="handleFileChange" class="modal-input" />
+            </div>
+            <div class="form-group">
+                <label>时长 (秒)</label>
+                <input type="number" v-model="uploadForm.duration" placeholder="自动获取或手动输入" class="modal-input" />
+            </div>
+            <div class="form-group">
+                <label>发布日期</label>
+                <input type="date" v-model="uploadForm.release_date" class="modal-input" />
+            </div>
+             <div class="form-group">
+                <label>专辑ID (可选)</label>
+                <input v-model="uploadForm.album_id" placeholder="请输入专辑ID" class="modal-input" />
+            </div>
+             <div class="form-group">
+                <label>封面URL (可选)</label>
+                <input v-model="uploadForm.cover_url" placeholder="请输入封面图片URL" class="modal-input" />
+            </div>
+            <div class="modal-actions">
+                <button @click="handleUploadSong" class="confirm-btn">确认上传</button>
+                <button @click="showUploadModal = false" class="cancel-btn">取消</button>
             </div>
         </div>
     </div>
@@ -163,6 +199,7 @@ import {
     getCollectionListSongs
 } from '../../api/collection'
 import { upgradeToArtist } from '../../api/user'
+import { uploadSong } from '../../api/song'
 
 const currentContent = ref('favoriteSongsList')
 const username = ref('')
@@ -170,6 +207,61 @@ const password = ref('')
 const isArtist = ref(false)
 const showUpgradeModal = ref(false)
 const artistName = ref('')
+
+// 上传歌曲相关
+const showUploadModal = ref(false)
+const uploadForm = ref({
+    title: '',
+    album_id: '',
+    duration: '',
+    release_date: new Date().toISOString().split('T')[0],
+    file: null,
+    cover_url: ''
+})
+
+function handleFileChange(event) {
+    const file = event.target.files[0]
+    if (file) {
+        uploadForm.value.file = file
+        // 尝试获取时长
+        const audio = new Audio(URL.createObjectURL(file))
+        audio.onloadedmetadata = () => {
+            uploadForm.value.duration = Math.round(audio.duration)
+        }
+    }
+}
+
+async function handleUploadSong() {
+    if (!uploadForm.value.title || !uploadForm.value.file || !uploadForm.value.duration || !uploadForm.value.release_date) {
+        alert('请填写完整信息 (标题, 文件, 时长, 发布日期)')
+        return
+    }
+    
+    const formData = new FormData()
+    formData.append('title', uploadForm.value.title)
+    if (uploadForm.value.album_id) formData.append('album_id', uploadForm.value.album_id)
+    formData.append('duration', uploadForm.value.duration)
+    formData.append('release_date', uploadForm.value.release_date)
+    formData.append('audio_file', uploadForm.value.file)
+    if (uploadForm.value.cover_url) formData.append('cover_url', uploadForm.value.cover_url)
+    
+    try {
+        await uploadSong(formData)
+        alert('上传成功！')
+        showUploadModal.value = false
+        // 重置表单
+        uploadForm.value = {
+            title: '',
+            album_id: '',
+            duration: '',
+            release_date: new Date().toISOString().split('T')[0],
+            file: null,
+            cover_url: ''
+        }
+    } catch (e) {
+        alert(e.message || '上传失败')
+    }
+}
 
 // 控制弹窗显示
 const showAddListModal = ref(false)
@@ -660,5 +752,23 @@ async function confirmDelete() {
     color: #888;
     margin: -10px 0 10px;
     text-align: center;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.form-group label {
+    font-size: 14px;
+    font-weight: bold;
+    color: #555;
+}
+
+.upload-modal {
+    width: 500px; /* 稍微宽一点 */
+    max-height: 90vh;
+    overflow-y: auto;
 }
 </style>

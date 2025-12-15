@@ -1,12 +1,11 @@
 from rest_framework import generics, permissions,viewsets, filters
 from django.contrib.auth.models import User
-from UserManage.models import UserProfile
-from UserManage.serializers.UserSerializer import UserSerializer, RegisterSerializer, UserProfileSerializer
+from UserManage.serializers.UserSerializer import UserSerializer, RegisterSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from utils.response import api_response
-from ArtistManage.models.Aritist import Artist
+from ArtistManage.models import Artist
 from common.views import ( 
     BaseTokenObtainPairView,
     BaseRegisterView,
@@ -23,86 +22,31 @@ class RegisterView(BaseRegisterView):
     queryset = User.objects.all()
     serializer_class = RegisterSerializer
 
-class ArtistRegisterView(APIView):
-    """歌手注册：创建用户账号并标记角色为 artist，同时创建 Artist 记录"""
-    permission_classes = []
-    def post(self, request):
-        username = request.data.get('username')
-        password = request.data.get('password')
-        artist_name = request.data.get('name') or username
-        if not username or not password:
-            return api_response(code=1, message='缺少用户名或密码', data=None)
-        if User.objects.filter(username=username).exists():
-            return api_response(code=2, message='用户名已存在', data=None)
-        user = User.objects.create_user(username=username, password=password)
-        # 创建或更新资料角色
-        profile, _ = UserProfile.objects.get_or_create(user=user)
-        profile.roles = 'artist'
-        profile.save()
-        # 创建 Artist 业务实体
-        Artist.objects.create(name=artist_name)
-        return api_response(code=0, message='歌手注册成功', data={'user_id': user.id, 'username': username})
-
+# 普通用户升级为歌手视图
 class UpgradeArtistView(APIView):
-    """普通用户升级为歌手（SQL实现）"""
+    """普通用户升级为歌手"""
     permission_classes = [permissions.IsAuthenticated]
     def post(self, request):
-        user_id = request.user.id
-        name = request.data.get('name') or request.user.username
+        user = request.user
+        name = request.data.get('name') or user.username
+        
+        # 检查是否已经是歌手 (SQL)
         with connection.cursor() as cursor:
-            cursor.execute("SELECT roles FROM user_profile WHERE user_id=%s", [user_id])
-            row = cursor.fetchone()
-        if row and (row[0] or '') == 'artist':
-            return api_response(code=0, message='用户已是歌手', data={'user_id': user_id})
+            cursor.execute("SELECT 1 FROM user_become_artist WHERE user_id=%s", [user.id])
+            if cursor.fetchone():
+                return api_response(code=0, message='用户已是歌手', data={'user_id': user.id})
+            
+        # 获取或创建 Artist
+        artist, created = Artist.objects.get_or_create(name=name)
+        
+        # 创建关联 (SQL)
         with connection.cursor() as cursor:
-            if row:
-                cursor.execute("UPDATE user_profile SET roles='artist' WHERE user_id=%s", [user_id])
-            else:
-                cursor.execute("INSERT INTO user_profile (user_id, roles) VALUES (%s, 'artist')", [user_id])
-        artist_id = None
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT artist_id FROM artist WHERE name=%s", [name])
-            arow = cursor.fetchone()
-            if not arow:
-                cursor.execute("INSERT INTO artist (name, create_time, update_time) VALUES (%s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)", [name])
-                artist_id = cursor.lastrowid
-                if not artist_id:
-                    cursor.execute("SELECT artist_id FROM artist WHERE name=%s ORDER BY artist_id DESC LIMIT 1", [name])
-                    r = cursor.fetchone()
-                    artist_id = r[0] if r else None
-            else:
-                artist_id = arow[0]
-        return api_response(code=0, message='升级成功', data={'user_id': user_id, 'artist_id': artist_id, 'name': name})
-
-# 个人资料视图：继承基类逻辑，专注于 Artist 特有的特有处理
-class ProfileView(generics.RetrieveUpdateAPIView):
-    serializer_class = UserProfileSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_object(self):
-        # 确保获取当前登录用户的艺术家资料（若有扩展字段可在此处处理）
-        return self.request.user.profile
-    
-    def retrieve(self, request, *args, **kwargs):
-        instance = self.get_object()
-        serializer = self.get_serializer(instance)
-        return Response({
-            'code': 0,
-            'data': serializer.data,
-            'message': '艺术家资料获取成功'  # 提示信息更贴合业务
-        })
-
-    def update(self, request, *args, **kwargs):
-        partial = True
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=partial)
-        serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
-        return Response({
-            'code': 0,
-            'data': serializer.data,
-            'message': '艺术家资料更新成功'
-        })
+            cursor.execute(
+                "INSERT INTO user_become_artist (user_id, artist_id) VALUES (%s, %s)",
+                [user.id, artist.artist_id]
+            )
+        
+        return api_response(code=0, message='升级成功', data={'user_id': user.id, 'artist_id': artist.artist_id, 'name': name})
 
     def partial_update(self, request, *args, **kwargs):
         kwargs['partial'] = True

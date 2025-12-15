@@ -1,23 +1,23 @@
 from django.db import models
-from ArtistManage.models import Artist as Singer
+from ArtistManage.models import Artist
 from SongManage.models import Song
 
-class SingerSongPublish(models.Model):
-    singer_id = models.ForeignKey(
-        Singer, 
+class ArtistSongPublish(models.Model):
+    artist_id = models.ForeignKey(
+        Artist, 
         on_delete=models.CASCADE, 
-        db_column="singer_id",
+        db_column="ARTIST_ID",
         verbose_name="歌手ID"
     )
     song_id = models.ForeignKey(
         Song, 
         on_delete=models.CASCADE, 
-        db_column="song_id",
+        db_column="SONG_ID",
         verbose_name="歌曲ID"
     )
 
     class Meta:
-        db_table = "singer_song_publish"
+        db_table = "artist_song_relation"
         verbose_name = "歌手歌曲发布"
         verbose_name_plural = "歌手歌曲发布"
-        unique_together = ("singer_id", "song_id")  # 组合主键
+        unique_together = ("artist_id", "song_id")

@@ -1,6 +1,6 @@
 from rest_framework import viewsets, filters, serializers, permissions
 from rest_framework.views import APIView
-from CollectionManage.models import CollectionList, CollectionListSongInclude, UserAlbumCollect, UserSingerFollow, SingerSongPublish
+from CollectionManage.models import CollectionList, CollectionListSongInclude, UserAlbumCollect, UserArtistFollow, ArtistSongPublish
 from SongManage.models import Song
 from AlbumManage.models import Album
 from ArtistManage.models.Artist import Artist
@@ -37,43 +37,43 @@ class UserAlbumCollectViewSet(BaseReadOnlyViewSet):
     queryset = UserAlbumCollect.objects.all()
     serializer_class = UserAlbumCollectSerializer
 
-class UserSingerFollowSerializer(serializers.ModelSerializer):
+class UserArtistFollowSerializer(serializers.ModelSerializer):
     class Meta:
-        model = UserSingerFollow
+        model = UserArtistFollow
         fields = '__all__'
 
-class UserSingerFollowViewSet(BaseReadOnlyViewSet):
-    queryset = UserSingerFollow.objects.all()
-    serializer_class = UserSingerFollowSerializer
+class UserArtistFollowViewSet(BaseReadOnlyViewSet):
+    queryset = UserArtistFollow.objects.all()
+    serializer_class = UserArtistFollowSerializer
 
-class SingerSongPublishSerializer(serializers.ModelSerializer):
+class ArtistSongPublishSerializer(serializers.ModelSerializer):
     class Meta:
-        model = SingerSongPublish
+        model = ArtistSongPublish
         fields = '__all__'
 
-class SingerSongPublishViewSet(BaseReadOnlyViewSet):
-    queryset = SingerSongPublish.objects.none()
-    serializer_class = SingerSongPublishSerializer
+class ArtistSongPublishViewSet(BaseReadOnlyViewSet):
+    queryset = ArtistSongPublish.objects.none()
+    serializer_class = ArtistSongPublishSerializer
     def list(self, request, *args, **kwargs):
         search = request.query_params.get('search')
-        singer_id = request.query_params.get('singer_id')
+        artist_id = request.query_params.get('artist_id') or request.query_params.get('singer_id')
         song_id = request.query_params.get('song_id')
         where = []
         params = []
-        if singer_id:
-            where.append("p.singer_id=%s")
-            params.append(singer_id)
+        if artist_id:
+            where.append("p.ARTIST_ID=%s")
+            params.append(artist_id)
         if song_id:
-            where.append("p.song_id=%s")
+            where.append("p.SONG_ID=%s")
             params.append(song_id)
         if search:
-            where.append("(s.name LIKE %s OR g.title LIKE %s)")
+            where.append("(s.artist_name LIKE %s OR g.title LIKE %s)")
             like = f"%{search}%"
             params.extend([like, like])
         sql = (
-            "SELECT p.singer_id, s.name, p.song_id, g.title FROM singer_song_publish p "
-            "JOIN artist s ON p.singer_id=s.artist_id "
-            "JOIN song g ON p.song_id=g.song_id "
+            "SELECT p.ARTIST_ID, s.artist_name, p.SONG_ID, g.title FROM artist_song_relation p "
+            "JOIN artist s ON p.ARTIST_ID=s.artist_id "
+            "JOIN song g ON p.SONG_ID=g.song_id "
         )
         if where:
             sql += "WHERE " + " AND ".join(where) + " "
@@ -87,18 +87,21 @@ class SingerSongPublishViewSet(BaseReadOnlyViewSet):
         ]
         return api_response(data=data)
     def retrieve(self, request, *args, **kwargs):
-        pk = kwargs.get('pk')
+        artist_id = kwargs.get('pk')
+        song_id = request.query_params.get('song_id')
+        if not artist_id or not song_id:
+            return api_response(code=1, message='缺少参数', data=None)
         with connection.cursor() as cursor:
             cursor.execute(
-                "SELECT p.id, p.singer_id, s.name, p.song_id, g.title FROM singer_song_publish p "
-                "JOIN artist s ON p.singer_id=s.artist_id "
-                "JOIN song g ON p.song_id=g.song_id WHERE p.id=%s",
-                [pk],
+                "SELECT p.ARTIST_ID, s.artist_name, p.SONG_ID, g.title FROM artist_song_relation p "
+                "JOIN artist s ON p.ARTIST_ID=s.artist_id "
+                "JOIN song g ON p.SONG_ID=g.song_id WHERE p.ARTIST_ID=%s AND p.SONG_ID=%s",
+                [artist_id, song_id],
             )
             row = cursor.fetchone()
         if not row:
             return api_response(code=2, message='未找到发布关系', data=None)
-        data = { 'id': row[0], 'singer_id': row[1], 'singer_name': row[2], 'song_id': row[3], 'song_title': row[4] }
+        data = { 'singer_id': row[0], 'singer_name': row[1], 'song_id': row[2], 'song_title': row[3] }
         return api_response(data=data)
 
 
@@ -107,7 +110,9 @@ class MyCollectionListsView(APIView):
     def get(self, request):
         with connection.cursor() as cursor:
             cursor.execute(
-                "SELECT list_id, list_name FROM collection_list WHERE user_id=%s ORDER BY create_time DESC",
+                "SELECT cl.LIST_ID, cl.LIST_NAME FROM user_favourite_songs_list cl "
+                "JOIN user_list_relation ulr ON cl.LIST_ID=ulr.LIST_ID "
+                "WHERE ulr.USER_ID=%s ORDER BY cl.CREATE_TIME DESC",
                 [request.user.id],
             )
             rows = cursor.fetchall()
@@ -119,17 +124,23 @@ class MyCollectionListsView(APIView):
             return api_response(code=1, message='缺少列表名称', data=None)
         with connection.cursor() as cursor:
             cursor.execute(
-                "INSERT INTO collection_list (list_name, user_id, create_time) VALUES (%s, %s, CURRENT_TIMESTAMP)",
-                [name, request.user.id],
+                "INSERT INTO user_favourite_songs_list (LIST_NAME, CREATE_TIME) VALUES (%s, CURRENT_TIMESTAMP)",
+                [name],
             )
             new_id = cursor.lastrowid
             if not new_id:
                 cursor.execute(
-                    "SELECT list_id FROM collection_list WHERE user_id=%s AND list_name=%s ORDER BY create_time DESC LIMIT 1",
-                    [request.user.id, name],
+                    "SELECT LIST_ID FROM user_favourite_songs_list WHERE LIST_NAME=%s ORDER BY CREATE_TIME DESC LIMIT 1",
+                    [name],
                 )
                 row = cursor.fetchone()
                 new_id = row[0] if row else None
+        if new_id:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "INSERT INTO user_list_relation (USER_ID, LIST_ID) VALUES (%s, %s)",
+                    [request.user.id, new_id],
+                )
         return api_response(message='创建成功', data={'id': new_id, 'title': name})
 
 
@@ -138,22 +149,21 @@ class MyCollectionListDeleteView(APIView):
     def delete(self, request, list_id: int):
         with connection.cursor() as cursor:
             cursor.execute(
-                "SELECT 1 FROM collection_list WHERE list_id=%s AND user_id=%s",
+                "SELECT 1 FROM user_list_relation WHERE LIST_ID=%s AND USER_ID=%s",
                 [list_id, request.user.id],
             )
             row = cursor.fetchone()
         if not row:
             return api_response(code=2, message='未找到列表', data=None)
         with connection.cursor() as cursor:
-            cursor.execute(
-                "DELETE FROM collection_list WHERE list_id=%s AND user_id=%s",
-                [list_id, request.user.id],
-            )
+            cursor.execute("DELETE FROM user_song_list_relation WHERE LIST_ID=%s", [list_id])
+            cursor.execute("DELETE FROM user_list_relation WHERE LIST_ID=%s AND USER_ID=%s", [list_id, request.user.id])
+            cursor.execute("DELETE FROM user_favourite_songs_list WHERE LIST_ID=%s", [list_id])
         return api_response(message='删除成功', data=None)
     def patch(self, request, list_id: int):
         with connection.cursor() as cursor:
             cursor.execute(
-                "SELECT 1 FROM collection_list WHERE list_id=%s AND user_id=%s",
+                "SELECT 1 FROM user_list_relation WHERE LIST_ID=%s AND USER_ID=%s",
                 [list_id, request.user.id],
             )
             row = cursor.fetchone()
@@ -164,8 +174,8 @@ class MyCollectionListDeleteView(APIView):
             return api_response(code=1, message='缺少列表名称', data=None)
         with connection.cursor() as cursor:
             cursor.execute(
-                "UPDATE collection_list SET list_name=%s WHERE list_id=%s AND user_id=%s",
-                [name, list_id, request.user.id],
+                "UPDATE user_favourite_songs_list SET LIST_NAME=%s WHERE LIST_ID=%s",
+                [name, list_id],
             )
         return api_response(message='重命名成功', data={'id': list_id, 'title': name})
 
@@ -175,7 +185,7 @@ class MyCollectionListSongsView(APIView):
     def get(self, request, list_id: int):
         with connection.cursor() as cursor:
             cursor.execute(
-                "SELECT 1 FROM collection_list WHERE list_id=%s AND user_id=%s",
+                "SELECT 1 FROM user_list_relation WHERE LIST_ID=%s AND USER_ID=%s",
                 [list_id, request.user.id],
             )
             row = cursor.fetchone()
@@ -183,7 +193,7 @@ class MyCollectionListSongsView(APIView):
             return api_response(code=2, message='未找到列表', data=None)
         with connection.cursor() as cursor:
             cursor.execute(
-                "SELECT s.song_id, s.title FROM collection_list_song_include i JOIN song s ON i.song_id=s.song_id WHERE i.list_id=%s ORDER BY i.include_time DESC",
+                "SELECT s.song_id, s.title FROM user_song_list_relation i JOIN song s ON i.SONG_ID=s.song_id WHERE i.LIST_ID=%s ORDER BY i.ADD_TIME DESC",
                 [list_id],
             )
             rows = cursor.fetchall()
@@ -192,7 +202,7 @@ class MyCollectionListSongsView(APIView):
     def post(self, request, list_id: int):
         with connection.cursor() as cursor:
             cursor.execute(
-                "SELECT 1 FROM collection_list WHERE list_id=%s AND user_id=%s",
+                "SELECT 1 FROM user_list_relation WHERE LIST_ID=%s AND USER_ID=%s",
                 [list_id, request.user.id],
             )
             row = cursor.fetchone()
@@ -212,7 +222,7 @@ class MyCollectionListSongsView(APIView):
         try:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    "INSERT INTO collection_list_song_include (list_id, song_id, include_time) VALUES (%s, %s, CURRENT_TIMESTAMP)",
+                    "INSERT INTO user_song_list_relation (LIST_ID, SONG_ID, ADD_TIME) VALUES (%s, %s, CURRENT_TIMESTAMP)",
                     [list_id, song_id],
                 )
         except IntegrityError:
@@ -231,7 +241,7 @@ class MyCollectionListSongDeleteView(APIView):
     def delete(self, request, list_id: int, song_id: int):
         with connection.cursor() as cursor:
             cursor.execute(
-                "SELECT 1 FROM collection_list WHERE list_id=%s AND user_id=%s",
+                "SELECT 1 FROM user_list_relation WHERE LIST_ID=%s AND USER_ID=%s",
                 [list_id, request.user.id],
             )
             row = cursor.fetchone()
@@ -239,7 +249,7 @@ class MyCollectionListSongDeleteView(APIView):
             return api_response(code=2, message='未找到列表', data=None)
         with connection.cursor() as cursor:
             cursor.execute(
-                "DELETE FROM collection_list_song_include WHERE list_id=%s AND song_id=%s",
+                "DELETE FROM user_song_list_relation WHERE LIST_ID=%s AND SONG_ID=%s",
                 [list_id, song_id],
             )
             affected = cursor.rowcount
@@ -253,7 +263,7 @@ class MyAlbumCollectView(APIView):
     def get(self, request):
         with connection.cursor() as cursor:
             cursor.execute(
-                "SELECT a.album_id, a.album_name FROM user_album_collect u JOIN album a ON u.album_id=a.album_id WHERE u.user_id=%s ORDER BY u.collect_time DESC",
+                "SELECT a.album_id, a.album_name FROM user_favourite_albums u JOIN album a ON u.ALBUM_ID=a.album_id WHERE u.USER_ID=%s ORDER BY u.COLLECT_TIME DESC",
                 [request.user.id],
             )
             rows = cursor.fetchall()
@@ -274,7 +284,7 @@ class MyAlbumCollectView(APIView):
         try:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    "INSERT INTO user_album_collect (user_id, album_id, collect_time) VALUES (%s, %s, CURRENT_TIMESTAMP)",
+                    "INSERT INTO user_favourite_albums (USER_ID, ALBUM_ID, COLLECT_TIME) VALUES (%s, %s, CURRENT_TIMESTAMP)",
                     [request.user.id, album_id],
                 )
         except IntegrityError:
@@ -287,7 +297,7 @@ class MyAlbumCollectDeleteView(APIView):
     def delete(self, request, album_id: int):
         with connection.cursor() as cursor:
             cursor.execute(
-                "DELETE FROM user_album_collect WHERE user_id=%s AND album_id=%s",
+                "DELETE FROM user_favourite_albums WHERE USER_ID=%s AND ALBUM_ID=%s",
                 [request.user.id, album_id],
             )
             affected = cursor.rowcount
@@ -296,25 +306,25 @@ class MyAlbumCollectDeleteView(APIView):
         return api_response(message='删除成功', data=None)
 
 
-class MySingerFollowView(APIView):
+class MyArtistFollowView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     def get(self, request):
         with connection.cursor() as cursor:
             cursor.execute(
-                "SELECT s.artist_id, s.name FROM user_singer_follow u JOIN artist s ON u.singer_id=s.artist_id WHERE u.user_id=%s ORDER BY u.follow_time DESC",
+                "SELECT s.artist_id, s.artist_name FROM user_follow_artists u JOIN artist s ON u.ARTIST_ID=s.artist_id WHERE u.USER_ID=%s ORDER BY u.FOLLOW_TIME DESC",
                 [request.user.id],
             )
             rows = cursor.fetchall()
         data = [{'id': r[0], 'title': r[1]} for r in rows]
         return api_response(data=data)
     def post(self, request):
-        singer_id = request.data.get('singer_id')
-        if not singer_id:
+        artist_id = request.data.get('artist_id') or request.data.get('singer_id')
+        if not artist_id:
             return api_response(code=1, message='缺少歌手ID', data=None)
         with connection.cursor() as cursor:
             cursor.execute(
-                "SELECT artist_id, name FROM artist WHERE artist_id=%s",
-                [singer_id],
+                "SELECT artist_id, artist_name FROM artist WHERE artist_id=%s",
+                [artist_id],
             )
             row = cursor.fetchone()
         if not row:
@@ -322,21 +332,21 @@ class MySingerFollowView(APIView):
         try:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    "INSERT INTO user_singer_follow (user_id, singer_id, follow_time) VALUES (%s, %s, CURRENT_TIMESTAMP)",
-                    [request.user.id, singer_id],
+                    "INSERT INTO user_follow_artists (USER_ID, ARTIST_ID, FOLLOW_TIME) VALUES (%s, %s, CURRENT_TIMESTAMP)",
+                    [request.user.id, artist_id],
                 )
         except IntegrityError:
             pass
-        return api_response(message='关注成功', data={'id': int(singer_id), 'title': row[1]})
+        return api_response(message='关注成功', data={'id': int(artist_id), 'title': row[1]})
 
 
-class MySingerFollowDeleteView(APIView):
+class MyArtistFollowDeleteView(APIView):
     permission_classes = [permissions.IsAuthenticated]
-    def delete(self, request, singer_id: int):
+    def delete(self, request, artist_id: int):
         with connection.cursor() as cursor:
             cursor.execute(
-                "DELETE FROM user_singer_follow WHERE user_id=%s AND singer_id=%s",
-                [request.user.id, singer_id],
+                "DELETE FROM user_follow_artists WHERE USER_ID=%s AND ARTIST_ID=%s",
+                [request.user.id, artist_id],
             )
             affected = cursor.rowcount
         if affected == 0:
@@ -351,12 +361,12 @@ class MyPublishSongLinkView(APIView):
         role = getattr(getattr(request.user, 'profile', None), 'roles', '')
         if role != 'artist':
             return api_response(code=1, message='仅歌手可发布', data=None)
-        singer_id = request.data.get('singer_id')
+        artist_id = request.data.get('artist_id') or request.data.get('singer_id')
         song_id = request.data.get('song_id')
-        if not singer_id or not song_id:
+        if not artist_id or not song_id:
             return api_response(code=2, message='缺少参数', data=None)
         with connection.cursor() as cursor:
-            cursor.execute("SELECT 1 FROM artist WHERE artist_id=%s", [singer_id])
+            cursor.execute("SELECT 1 FROM artist WHERE artist_id=%s", [artist_id])
             srow = cursor.fetchone()
             cursor.execute("SELECT title FROM song WHERE song_id=%s", [song_id])
             grow = cursor.fetchone()
@@ -365,27 +375,27 @@ class MyPublishSongLinkView(APIView):
         try:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    "INSERT INTO singer_song_publish (singer_id, song_id) VALUES (%s, %s)",
-                    [singer_id, song_id],
+                    "INSERT INTO artist_song_relation (ARTIST_ID, SONG_ID) VALUES (%s, %s)",
+                    [artist_id, song_id],
                 )
         except IntegrityError:
             pass
-        return api_response(message='发布关系创建成功', data={'singer_id': int(singer_id), 'song_id': int(song_id), 'song_title': grow[0]})
+        return api_response(message='发布关系创建成功', data={'singer_id': int(artist_id), 'song_id': int(song_id), 'song_title': grow[0]})
 
     def delete(self, request):
         role = getattr(getattr(request.user, 'profile', None), 'roles', '')
         if role != 'artist':
             return api_response(code=1, message='仅歌手可取消发布', data=None)
-        singer_id = request.data.get('singer_id') or request.query_params.get('singer_id')
+        artist_id = request.data.get('artist_id') or request.query_params.get('artist_id') or request.data.get('singer_id') or request.query_params.get('singer_id')
         song_id = request.data.get('song_id') or request.query_params.get('song_id')
-        if not singer_id or not song_id:
+        if not artist_id or not song_id:
             return api_response(code=2, message='缺少参数', data=None)
         with connection.cursor() as cursor:
             cursor.execute(
-                "DELETE FROM singer_song_publish WHERE singer_id=%s AND song_id=%s",
-                [singer_id, song_id],
+                "DELETE FROM artist_song_relation WHERE ARTIST_ID=%s AND SONG_ID=%s",
+                [artist_id, song_id],
             )
             affected = cursor.rowcount
         if affected == 0:
             return api_response(code=3, message='未找到发布关系', data=None)
-        return api_response(message='取消发布成功', data={'singer_id': int(singer_id), 'song_id': int(song_id)})
+        return api_response(message='取消发布成功', data={'singer_id': int(artist_id), 'song_id': int(song_id)})

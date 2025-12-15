@@ -4,16 +4,16 @@ from .views.CollectionView import (
     CollectionListViewSet,
     CollectionListSongIncludeViewSet,
     UserAlbumCollectViewSet,
-    UserSingerFollowViewSet,
-    SingerSongPublishViewSet,
+    UserArtistFollowViewSet,
+    ArtistSongPublishViewSet,
     MyCollectionListsView,
     MyCollectionListDeleteView,
     MyCollectionListSongsView,
     MyCollectionListSongDeleteView,
     MyAlbumCollectView,
     MyAlbumCollectDeleteView,
-    MySingerFollowView,
-    MySingerFollowDeleteView,
+    MyArtistFollowView,
+    MyArtistFollowDeleteView,
     MyPublishSongLinkView,
 )
 
@@ -21,8 +21,8 @@ router = DefaultRouter()
 router.register(r'list', CollectionListViewSet, basename='collection-list')
 router.register(r'list-song', CollectionListSongIncludeViewSet, basename='collection-list-song')
 router.register(r'user-album', UserAlbumCollectViewSet, basename='user-album-collect')
-router.register(r'user-singer', UserSingerFollowViewSet, basename='user-singer-follow')
-router.register(r'singer-song', SingerSongPublishViewSet, basename='singer-song-publish')
+router.register(r'user-artist', UserArtistFollowViewSet, basename='user-artist-follow')
+router.register(r'artist-song', ArtistSongPublishViewSet, basename='artist-song-publish')
 
 urlpatterns = [
     path('', include(router.urls)),
@@ -32,7 +32,7 @@ urlpatterns = [
     path('my/lists/<int:list_id>/songs/<int:song_id>/', MyCollectionListSongDeleteView.as_view(), name='my-collection-list-song-delete'),
     path('my/albums/', MyAlbumCollectView.as_view(), name='my-album-collect'),
     path('my/albums/<int:album_id>/', MyAlbumCollectDeleteView.as_view(), name='my-album-collect-delete'),
-    path('my/artists/', MySingerFollowView.as_view(), name='my-singer-follow'),
-    path('my/artists/<int:singer_id>/', MySingerFollowDeleteView.as_view(), name='my-singer-follow-delete'),
+    path('my/artists/', MyArtistFollowView.as_view(), name='my-artist-follow'),
+    path('my/artists/<int:artist_id>/', MyArtistFollowDeleteView.as_view(), name='my-artist-follow-delete'),
     path('my/publish-song/', MyPublishSongLinkView.as_view(), name='my-publish-song-link'),
 ]

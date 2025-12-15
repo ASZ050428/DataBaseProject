@@ -10,7 +10,7 @@ CREATE TABLE `users` (
 CREATE TABLE `artists` (
   `ARTIST_ID` int unsigned NOT NULL AUTO_INCREMENT,
   `ARTIST_NAME` varchar(32) COLLATE utf8mb4_general_ci NOT NULL,
-  `COUNTRY/REGION` varchar(32) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `REGION` varchar(32) COLLATE utf8mb4_general_ci DEFAULT NULL,
   `BIO` text COLLATE utf8mb4_general_ci,
   PRIMARY KEY (`ARTIST_ID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

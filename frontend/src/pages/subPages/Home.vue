@@ -82,20 +82,25 @@ async function search() {
     
     try {
         hasSearched.value = true
-        // 并行请求
-        const [songsResult, albumsResult, artistsResult] = await Promise.all([
+        // 使用 Promise.allSettled 防止某个接口报错导致所有结果都不显示
+        const results = await Promise.allSettled([
             searchSong(query.value),
             searchAlbum(query.value),
             searchArtist(query.value)
         ])
         
-        songs.value = songsResult || []
-        albums.value = albumsResult || []
-        artists.value = artistsResult || []
+        // results[0] 是歌曲, results[1] 是专辑, results[2] 是歌手
+        songs.value = results[0].status === 'fulfilled' ? results[0].value : []
+        albums.value = results[1].status === 'fulfilled' ? results[1].value : []
+        artists.value = results[2].status === 'fulfilled' ? results[2].value : []
+
+        // 如果有错误，打印出来方便调试
+        if (results[0].status === 'rejected') console.error('搜索歌曲失败:', results[0].reason)
+        if (results[1].status === 'rejected') console.error('搜索专辑失败:', results[1].reason)
+        if (results[2].status === 'rejected') console.error('搜索歌手失败:', results[2].reason)
         
     } catch (error) {
-        console.error('搜索失败:', error)
-        alert('搜索出错，请稍后再试')
+        console.error('搜索流程出错:', error)
     }
 }
 

@@ -85,7 +85,7 @@ class ArtistViewSet(BaseReadOnlyViewSet):  # 类名更贴合模块功能
         sql = "SELECT artist_id, artist_name, region, bio FROM artist"
         params = []
         if search:
-            sql += " WHERE name LIKE %s"
+            sql += " WHERE artist_name LIKE %s"
             params.append(f"%{search}%")
         
         with connection.cursor() as cursor:

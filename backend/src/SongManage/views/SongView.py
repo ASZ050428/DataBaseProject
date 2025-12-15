@@ -85,12 +85,21 @@ class MySongCreateView(APIView):
     parser_classes = [MultiPartParser, FormParser]
 
     def post(self, request):
-        role = getattr(getattr(request.user, 'profile', None), 'roles', '')
-        if role != 'artist':
-            return api_response(code=1, message='仅歌手可创建歌曲', data=None)
+        # 检查用户是否是歌手 (通过 user_become_artist 表)
+        artist_id = None
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT artist_id FROM user_become_artist WHERE user_id=%s", 
+                [request.user.id]
+            )
+            row = cursor.fetchone()
+            if row:
+                artist_id = row[0]
         
+        if not artist_id:
+             return api_response(code=1, message='仅歌手可创建歌曲', data=None)
+
         title = request.data.get('title')
-        artist_id = request.data.get('artist_id')
         album_id = request.data.get('album_id')
         duration = request.data.get('duration')
         release_date = request.data.get('release_date')
@@ -99,18 +108,6 @@ class MySongCreateView(APIView):
         
         # 获取上传的文件
         audio_file = request.FILES.get('audio_file')
-
-        # 尝试自动获取 artist_id
-        if not artist_id:
-            # 通过 user_become_artist 关联表查找 (SQL)
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    "SELECT artist_id FROM user_become_artist WHERE user_id=%s", 
-                    [request.user.id]
-                )
-                row = cursor.fetchone()
-                if row:
-                    artist_id = row[0]
 
         if not title or not artist_id or not duration or not release_date or not audio_file:
             return api_response(code=2, message='缺少参数 (需包含 audio_file, title, duration, release_date) 或 无法识别歌手身份', data=None)

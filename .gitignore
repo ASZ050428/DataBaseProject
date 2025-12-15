@@ -18,3 +18,7 @@ frontend/yarn-debug.log*
 frontend/yarn-error.log*
 frontend/pnpm-debug.log*
 frontend/.env.local
+
+# Media
+backend/src/media/
+**/media/

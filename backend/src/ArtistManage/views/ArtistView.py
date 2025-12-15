@@ -75,17 +75,48 @@ class CodeView(APIView):
 
 # 艺术家视图集：继承只读基类，专注于艺术家相关用户查询
 class ArtistViewSet(BaseReadOnlyViewSet):  # 类名更贴合模块功能
-    queryset = User.objects.all()  # 可根据需求筛选艺术家用户（如通过角色筛选）
-    serializer_class = UserSerializer
+    queryset = Artist.objects.none()
+    serializer_class = UserSerializer # 这里可能需要一个 ArtistSerializer，但暂时先不管
     filter_backends = [filters.SearchFilter]
-    search_fields = ['=username', 'profile__realName']  # 支持按用户名和真实姓名搜索
+    search_fields = ['=name']
+
+    def list(self, request, *args, **kwargs):
+        search = request.query_params.get('search')
+        sql = "SELECT artist_id, artist_name, region, bio FROM artist"
+        params = []
+        if search:
+            sql += " WHERE name LIKE %s"
+            params.append(f"%{search}%")
+        
+        with connection.cursor() as cursor:
+            cursor.execute(sql, params)
+            rows = cursor.fetchall()
+        
+        data = [
+            {
+                'id': r[0],
+                'artist_name': r[1],
+                'region': r[2],
+                'bio': r[3]
+            }
+            for r in rows
+        ]
+        return api_response(data=data)
 
     # 复写retrieve方法，确保保返回艺术家详情
     def retrieve(self, request, *args, **kwargs):
-        instance = request.user  # 或根据ID查询指定艺术家
-        serializer = self.get_serializer(instance)
-        return Response({
-            'code': 0,
-            'data': serializer.data,
-            'message': '艺术家详情获取成功'
-        })
+        pk = kwargs.get('pk')
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT artist_id, artist_name, region, bio FROM artist WHERE artist_id=%s", [pk])
+            row = cursor.fetchone()
+        
+        if not row:
+             return api_response(code=2, message='未找到歌手', data=None)
+
+        data = {
+            'id': row[0],
+            'artist_name': row[1],
+            'region': row[2],
+            'bio': row[3]
+        }
+        return api_response(data=data)

@@ -48,8 +48,8 @@
                     <div v-if="currentCollectionListSongs.length === 0" class="empty-tip">此歌单暂无歌曲</div>
                     <ul v-else class="fav-list">
                         <li v-for="song in currentCollectionListSongs" :key="song.id" class="fav-item">
-                            <div class="fav-info">
-                                <div class="fav-title">{{ song.title }}</div>
+                            <div class="fav-info" @click="emit('play', song.audio_url)" style="cursor: pointer;" title="点击播放">
+                                <div class="fav-title">▶ {{ song.title }}</div>
                             </div>
                             <button class="remove-btn" @click="removeSongFromList(song.id)">💔</button>
                         </li>
@@ -198,6 +198,8 @@ import {
     removeFavoriteArtist,
     getCollectionListSongs
 } from '../../api/collection'
+
+const emit = defineEmits(['play'])
 import { upgradeToArtist } from '../../api/user'
 import { uploadSong } from '../../api/song'
 

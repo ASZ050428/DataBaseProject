@@ -26,6 +26,7 @@
                             <div class="item-title">{{ song.title }}</div>
                             <div class="item-sub">时长: {{ formatDuration(song.duration) }}</div>
                         </div>
+                        <button class="action-btn" @click="emit('play', song.audio_url)" style="margin-right: 10px;">▶ 播放</button>
                         <button class="action-btn">➕ 收藏</button>
                     </li>
                 </ul>
@@ -53,10 +54,8 @@
                 <ul v-else class="result-list">
                     <li v-for="artist in artists" :key="artist.id" class="result-item">
                         <div class="item-info">
-                            <div class="item-title">{{ artist.username }}</div>
-                            <div class="item-sub" v-if="artist.profile && artist.profile.realName">
-                                {{ artist.profile.realName }}
-                            </div>
+                            <div class="item-title">{{ artist.artist_name }}</div>
+                            <div class="item-sub">地区: {{ artist.region }}</div>
                         </div>
                         <button class="action-btn">❤️ 关注</button>
                     </li>
@@ -69,6 +68,8 @@
 <script setup>
 import { ref } from 'vue'
 import { searchSong, searchAlbum, searchArtist } from '../../api/search'
+
+const emit = defineEmits(['play'])
 
 const query = ref('')
 const songs = ref([])

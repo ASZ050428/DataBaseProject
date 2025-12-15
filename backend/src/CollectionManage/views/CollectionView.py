@@ -3,7 +3,7 @@ from rest_framework.views import APIView
 from CollectionManage.models import CollectionList, CollectionListSongInclude, UserAlbumCollect, UserSingerFollow, SingerSongPublish
 from SongManage.models import Song
 from AlbumManage.models import Album
-from ArtistManage.models.Aritist import Artist
+from ArtistManage.models.Artist import Artist
 from common.views import BaseReadOnlyViewSet
 from utils.response import api_response
 from django.db import connection, IntegrityError

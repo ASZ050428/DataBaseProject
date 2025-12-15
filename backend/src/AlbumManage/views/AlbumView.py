@@ -3,7 +3,7 @@ from rest_framework.views import APIView
 from AlbumManage.models import Album
 from common.views import BaseReadOnlyViewSet
 from utils.response import api_response
-from ArtistManage.models.Aritist import Artist
+from ArtistManage.models.Artist import Artist
 from django.utils.dateparse import parse_date
 from django.db import connection
 

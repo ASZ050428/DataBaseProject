@@ -18,7 +18,7 @@
     <div class="content">
       <!-- 根据 currentTab 的值显示不同的内容 -->
       <div v-if="currentTab === 'home'">
-        <HomePage />
+        <HomePage @play="playSong" />
       </div>
 
       <div v-else-if="currentTab === 'artist'">
@@ -40,8 +40,13 @@
       </div>
 
       <div v-else-if="currentTab === 'my'">
-        <MinePage />
+        <MinePage @play="playSong" />
       </div>
+    </div>
+
+    <!-- 全局播放器 -->
+    <div v-if="currentSongUrl" class="audio-player-bar">
+      <audio :src="currentSongUrl" controls autoplay></audio>
     </div>
   </div>
 </template>
@@ -53,6 +58,11 @@ import MinePage from './subPages/MinePage.vue'
 
 const user = ref(null)
 const currentTab = ref('home') // 默认显示首页
+const currentSongUrl = ref('')
+
+function playSong(url) {
+  currentSongUrl.value = url
+}
 
 onMounted(() => {
   try {
@@ -143,5 +153,23 @@ function logout() {
   background: #f0f0f0;
   border-radius: 8px;
   border: 1px dashed #ccc;
+}
+
+.audio-player-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: #222;
+  padding: 10px;
+  display: flex;
+  justify-content: center;
+  z-index: 1000;
+  box-shadow: 0 -2px 10px rgba(0,0,0,0.3);
+}
+
+audio {
+  width: 80%;
+  outline: none;
 }
 </style>

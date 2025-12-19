@@ -37,7 +37,7 @@ class UpgradeArtistView(APIView):
                 return api_response(code=0, message='用户已是歌手', data={'user_id': user.id})
             
         # 获取或创建 Artist
-        artist, created = Artist.objects.get_or_create(name=name)
+        artist, created = Artist.objects.get_or_create(artist_name=name)
         
         # 创建关联 (SQL)
         with connection.cursor() as cursor:
@@ -107,16 +107,49 @@ class ArtistViewSet(BaseReadOnlyViewSet):  # 类名更贴合模块功能
     def retrieve(self, request, *args, **kwargs):
         pk = kwargs.get('pk')
         with connection.cursor() as cursor:
+            # 1. 获取歌手基本信息
             cursor.execute("SELECT artist_id, artist_name, region, bio FROM artist WHERE artist_id=%s", [pk])
             row = cursor.fetchone()
-        
-        if not row:
-             return api_response(code=2, message='未找到歌手', data=None)
+            
+            if not row:
+                 return api_response(code=2, message='未找到歌手', data=None)
+            
+            artist_info = {
+                'id': row[0],
+                'artist_name': row[1],
+                'region': row[2],
+                'bio': row[3]
+            }
+
+            # 2. 获取歌手的专辑
+            cursor.execute(
+                "SELECT album_id, album_name, release_time FROM album WHERE album_artist_id=%s ORDER BY release_time DESC",
+                [pk]
+            )
+            albums = [
+                {'album_id': r[0], 'album_name': r[1], 'release_time': r[2]}
+                for r in cursor.fetchall()
+            ]
+
+            # 3. 获取歌手的歌曲
+            cursor.execute(
+                "SELECT song_id, title, duration, play_count, audio_url FROM song WHERE artist_id=%s ORDER BY play_count DESC",
+                [pk]
+            )
+            songs = [
+                {
+                    'song_id': r[0], 
+                    'title': r[1], 
+                    'duration': r[2], 
+                    'play_count': r[3],
+                    'audio_url': r[4]
+                }
+                for r in cursor.fetchall()
+            ]
 
         data = {
-            'id': row[0],
-            'artist_name': row[1],
-            'region': row[2],
-            'bio': row[3]
+            **artist_info,
+            'albums': albums,
+            'songs': songs
         }
         return api_response(data=data)

@@ -11,18 +11,26 @@ export function getAuthHeaders() {
     return headers
 }
 
+async function handleResponse(res, defaultErrorMsg) {
+    if (res.status === 401) {
+        localStorage.removeItem('user')
+        window.location.href = '/login'
+        throw new Error('登录已过期，请重新登录')
+    }
+    const data = await res.json()
+    if (!res.ok || (typeof data.code !== 'undefined' && data.code !== 0)) {
+        throw new Error(data.message || defaultErrorMsg)
+    }
+    return data.data
+}
+
 // 1. 获取我的收藏歌单列表
 export async function getCollectionsList() {
     const res = await fetch('/api/collection/my/lists/', {
         method: 'GET',
         headers: getAuthHeaders(),
     })
-
-    const data = await res.json()
-    if (!res.ok || (typeof data.code !== 'undefined' && data.code !== 0)) {
-        throw new Error(data.message || '获取收藏列表失败')
-    }
-    return data.data // 返回实际的列表数据
+    return handleResponse(res, '获取收藏列表失败')
 }
 
 // 2. 创建新的收藏歌单
@@ -32,12 +40,7 @@ export async function addCollection(name) {
         headers: getAuthHeaders(),
         body: JSON.stringify({ name })
     })
-
-    const data = await res.json()
-    if (!res.ok || (typeof data.code !== 'undefined' && data.code !== 0)) {
-        throw new Error(data.message || '创建歌单失败')
-    }
-    return data.data // 返回新创建的歌单信息 {id, title}
+    return handleResponse(res, '创建歌单失败')
 }
 
 // 3. 删除收藏歌单
@@ -46,11 +49,16 @@ export async function deleteCollection(listId) {
         method: 'DELETE',
         headers: getAuthHeaders(),
     })
-
-    const data = await res.json()
-    if (!res.ok || (typeof data.code !== 'undefined' && data.code !== 0)) {
-        throw new Error(data.message || '删除歌单失败')
-    }
+    // DELETE usually returns 204 or empty body, but this API seems to return JSON based on previous code
+    // Previous code: const data = await res.json(); ... return true
+    // Let's check handleResponse. It expects JSON.
+    // If backend returns 204, res.json() will fail.
+    // Let's check the backend view MyCollectionListDeleteView.
+    // It returns api_response(message='删除成功', data=None), which is JSON.
+    // So handleResponse is fine, but it returns data.data which is None.
+    // The original code returned true.
+    
+    await handleResponse(res, '删除歌单失败')
     return true
 }
 
@@ -60,12 +68,7 @@ export async function getFavoriteAlbums() {
         method: 'GET',
         headers: getAuthHeaders(),
     })
-
-    const data = await res.json()
-    if (!res.ok || (typeof data.code !== 'undefined' && data.code !== 0)) {
-        throw new Error(data.message || '获取收藏专辑失败')
-    }
-    return data.data
+    return handleResponse(res, '获取收藏专辑失败')
 }
 
 // 5. 取消收藏专辑
@@ -74,11 +77,7 @@ export async function removeFavoriteAlbum(albumId) {
         method: 'DELETE',
         headers: getAuthHeaders(),
     })
-
-    const data = await res.json()
-    if (!res.ok || (typeof data.code !== 'undefined' && data.code !== 0)) {
-        throw new Error(data.message || '取消收藏专辑失败')
-    }
+    await handleResponse(res, '取消收藏专辑失败')
     return true
 }
 
@@ -88,12 +87,7 @@ export async function getFavoriteArtists() {
         method: 'GET',
         headers: getAuthHeaders(),
     })
-
-    const data = await res.json()
-    if (!res.ok || (typeof data.code !== 'undefined' && data.code !== 0)) {
-        throw new Error(data.message || '获取关注歌手失败')
-    }
-    return data.data
+    return handleResponse(res, '获取关注歌手失败')
 }
 
 // 7. 取消关注歌手
@@ -102,11 +96,7 @@ export async function removeFavoriteArtist(artistId) {
         method: 'DELETE',
         headers: getAuthHeaders(),
     })
-
-    const data = await res.json()
-    if (!res.ok || (typeof data.code !== 'undefined' && data.code !== 0)) {
-        throw new Error(data.message || '取消关注歌手失败')
-    }
+    await handleResponse(res, '取消关注歌手失败')
     return true
 }
 
@@ -115,10 +105,5 @@ export async function getCollectionListSongs(listId) {
         method: 'GET',
         headers: getAuthHeaders(),
     })
-
-    const data = await res.json()
-    if (!res.ok || (typeof data.code !== 'undefined' && data.code !== 0)) {
-        throw new Error(data.message || '获取歌单歌曲失败')
-    }
-    return data.data
+    return handleResponse(res, '获取歌单歌曲失败')
 }

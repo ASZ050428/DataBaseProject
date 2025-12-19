@@ -22,21 +22,32 @@
       </div>
 
       <div v-else-if="currentTab === 'artist'">
-        <h1>歌手管理</h1>
-        <p>这里是歌手列表区域。</p>
-        <div class="data-placeholder">歌手数据加载中...</div>
+        <ArtistList @select-artist="selectArtist" />
+      </div>
+
+      <div v-else-if="currentTab === 'artist_detail'">
+        <ArtistDetail 
+          :artist-id="currentArtistId" 
+          @back="backToArtistList" 
+          @play="playSong" 
+          @select-album="selectAlbum"
+        />
       </div>
 
       <div v-else-if="currentTab === 'album'">
-        <h1>专辑管理</h1>
-        <p>这里是专辑列表区域。</p>
-        <div class="data-placeholder">专辑数据加载中...</div>
+        <AlbumList @select-album="selectAlbum" />
+      </div>
+
+      <div v-else-if="currentTab === 'album_detail'">
+        <AlbumDetail 
+          :album-id="currentAlbumId" 
+          @back="backToAlbumList" 
+          @play="playSong" 
+        />
       </div>
 
       <div v-else-if="currentTab === 'song'">
-        <h1>歌曲管理</h1>
-        <p>这里是歌曲列表区域。</p>
-        <div class="data-placeholder">歌曲数据加载中...</div>
+        <SongList @play="playSong" />
       </div>
 
       <div v-else-if="currentTab === 'my'">
@@ -55,13 +66,40 @@
 import { ref, onMounted } from 'vue'
 import HomePage from './subPages/Home.vue'
 import MinePage from './subPages/MinePage.vue'
+import ArtistList from './subPages/ArtistList.vue'
+import AlbumList from './subPages/AlbumList.vue'
+import SongList from './subPages/SongList.vue'
+import ArtistDetail from './subPages/ArtistDetail.vue'
+import AlbumDetail from './subPages/AlbumDetail.vue'
 
 const user = ref(null)
 const currentTab = ref('home') // 默认显示首页
 const currentSongUrl = ref('')
+const currentArtistId = ref(null)
+const currentAlbumId = ref(null)
 
 function playSong(url) {
   currentSongUrl.value = url
+}
+
+function selectArtist(id) {
+  currentArtistId.value = id
+  currentTab.value = 'artist_detail'
+}
+
+function selectAlbum(id) {
+  currentAlbumId.value = id
+  currentTab.value = 'album_detail'
+}
+
+function backToArtistList() {
+  currentTab.value = 'artist'
+  currentArtistId.value = null
+}
+
+function backToAlbumList() {
+  currentTab.value = 'album'
+  currentAlbumId.value = null
 }
 
 onMounted(() => {

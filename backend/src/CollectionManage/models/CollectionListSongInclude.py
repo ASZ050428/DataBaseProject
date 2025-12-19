@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 from CollectionManage.models import CollectionList
 from SongManage.models import Song
 
@@ -15,7 +16,7 @@ class CollectionListSongInclude(models.Model):
         db_column="SONG_ID",
         verbose_name="歌曲ID"
     )
-    add_time = models.DateTimeField(auto_now_add=True, db_column="ADD_TIME", verbose_name="收入时间")
+    add_time = models.DateTimeField(default=timezone.now, db_column="ADD_TIME", verbose_name="收入时间")
 
     class Meta:
         db_table = "user_song_list_relation"

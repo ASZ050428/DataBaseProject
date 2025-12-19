@@ -33,14 +33,42 @@ class AlbumViewSet(BaseReadOnlyViewSet):
     def retrieve(self, request, *args, **kwargs):
         pk = kwargs.get('pk')
         with connection.cursor() as cursor:
+            # 1. 获取专辑基本信息
             cursor.execute(
                 "SELECT album_id, album_name, release_time, album_artist_id FROM album WHERE album_id=%s",
                 [pk],
             )
             row = cursor.fetchone()
-        if not row:
-            return api_response(code=2, message='未找到专辑', data=None)
-        data = { 'album_id': row[0], 'album_name': row[1], 'release_time': row[2], 'singer_id': row[3] }
+            if not row:
+                return api_response(code=2, message='未找到专辑', data=None)
+            
+            album_info = { 
+                'album_id': row[0], 
+                'album_name': row[1], 
+                'release_time': row[2], 
+                'singer_id': row[3] 
+            }
+
+            # 2. 获取专辑内的歌曲
+            cursor.execute(
+                "SELECT song_id, title, duration, play_count, audio_url FROM song WHERE album_id=%s ORDER BY song_id ASC",
+                [pk]
+            )
+            songs = [
+                {
+                    'song_id': r[0],
+                    'title': r[1],
+                    'duration': r[2],
+                    'play_count': r[3],
+                    'audio_url': r[4]
+                }
+                for r in cursor.fetchall()
+            ]
+
+        data = {
+            **album_info,
+            'songs': songs
+        }
         return api_response(data=data)
 
 

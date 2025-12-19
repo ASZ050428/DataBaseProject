@@ -6,6 +6,7 @@ from .views.UserView import (
     RegisterView,
     VerifyPasswordView,
     IdentifyTypeView,
+    MeView,
 )
 
 router = DefaultRouter()
@@ -17,4 +18,5 @@ urlpatterns = [
     path('auth/register/', RegisterView.as_view(), name='auth-register'),
     path('auth/verify/', VerifyPasswordView.as_view(), name='auth-verify'),
     path('auth/type/', IdentifyTypeView.as_view(), name='auth-type'),
+    path('auth/me/', MeView.as_view(), name='auth-me'),
 ]

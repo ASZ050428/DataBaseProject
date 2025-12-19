@@ -80,6 +80,54 @@ class SongViewSet(BaseReadOnlyViewSet):
         return api_response(data=data)
 
 
+class MySongListView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    def get(self, request):
+        artist_id = None
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT artist_id FROM user_become_artist WHERE user_id=%s", [request.user.id])
+            row = cursor.fetchone()
+            if row:
+                artist_id = row[0]
+        
+        if not artist_id:
+             return api_response(code=1, message='仅歌手可查看发布列表', data=None)
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT song_id, title, album_id, duration, release_date, play_count, audio_url, cover_url, create_time, update_time "
+                "FROM song WHERE artist_id=%s ORDER BY release_date DESC",
+                [artist_id]
+            )
+            rows = cursor.fetchall()
+        
+        data = []
+        for r in rows:
+            album_title = None
+            if r[2]: # album_id
+                with connection.cursor() as cursor:
+                    cursor.execute("SELECT album_name FROM album WHERE album_id=%s", [r[2]])
+                    arow = cursor.fetchone()
+                    if arow:
+                        album_title = arow[0]
+
+            data.append({
+                'song_id': r[0],
+                'title': r[1],
+                'album_id': r[2],
+                'album_title': album_title,
+                'duration': r[3],
+                'release_date': r[4],
+                'play_count': r[5],
+                'audio_url': r[6],
+                'cover_url': r[7],
+                'create_time': r[8],
+                'update_time': r[9],
+            })
+        
+        return api_response(data=data)
+
+
 class MySongCreateView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser]
@@ -148,3 +196,81 @@ class MySongCreateView(APIView):
                 r = cursor.fetchone()
                 new_id = r[0] if r else None
         return api_response(message='创建成功', data={'id': new_id, 'title': title, 'url': audio_url})
+
+class MySongUpdateView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    def patch(self, request, pk):
+        artist_id = None
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT artist_id FROM user_become_artist WHERE user_id=%s", 
+                [request.user.id]
+            )
+            row = cursor.fetchone()
+            if row:
+                artist_id = row[0]
+        if not artist_id:
+             return api_response(code=1, message='仅歌手可操作', data=None)
+        
+        # 验证歌曲归属
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT artist_id FROM song WHERE song_id=%s", [pk])
+            row = cursor.fetchone()
+            if not row:
+                return api_response(code=404, message='歌曲不存在', data=None)
+            if row[0] != artist_id:
+                return api_response(code=403, message='无权修改此歌曲', data=None)
+
+        # 更新字段 (目前主要支持 album_id)
+        album_id = request.data.get('album_id')
+        # 注意: album_id 可能为 None (移出专辑)
+        # request.data.get('album_id') 如果 key 不存在是 None，如果 key 存在且值为 null 也是 None (在 DRF/JSON 中)
+        # 为了区分 "不更新" 和 "更新为 None"，我们可以检查 key 是否存在
+        
+        has_album_change = 'album_id' in request.data
+        
+        if has_album_change:
+            # 验证 album_id 是否合法 (如果是 None 则跳过验证)
+            if album_id is not None:
+                with connection.cursor() as cursor:
+                    cursor.execute("SELECT album_artist_id FROM album WHERE album_id=%s", [album_id])
+                    arow = cursor.fetchone()
+                    if not arow:
+                         return api_response(code=2, message='专辑不存在', data=None)
+                    if arow[0] != artist_id:
+                         return api_response(code=3, message='不能添加到其他歌手的专辑', data=None)
+            
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "UPDATE song SET album_id=%s, update_time=CURRENT_TIMESTAMP WHERE song_id=%s",
+                    [album_id, pk]
+                )
+        
+        return api_response(message='更新成功', data=None)
+
+class MySongDeleteView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    def delete(self, request, pk):
+        artist_id = None
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT artist_id FROM user_become_artist WHERE user_id=%s", 
+                [request.user.id]
+            )
+            row = cursor.fetchone()
+            if row:
+                artist_id = row[0]
+        if not artist_id:
+             return api_response(code=1, message='仅歌手可操作', data=None)
+             
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT artist_id FROM song WHERE song_id=%s", [pk])
+            row = cursor.fetchone()
+            if not row:
+                return api_response(code=404, message='歌曲不存在', data=None)
+            if row[0] != artist_id:
+                return api_response(code=403, message='无权删除此歌曲', data=None)
+            
+            cursor.execute("DELETE FROM song WHERE song_id=%s", [pk])
+            
+        return api_response(message='删除成功', data=None)

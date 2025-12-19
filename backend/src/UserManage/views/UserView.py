@@ -15,15 +15,18 @@ class CustomTokenObtainPairView(BaseTokenObtainPairView):
         username = request.data.get('username')
         role = 'user'
         user_id = None
+        artist_id = None
         try:
             u = User.objects.filter(username=username).first()
             if u:
                 user_id = u.id
                 # 检查是否是歌手 (SQL查询关联表)
                 with connection.cursor() as cursor:
-                    cursor.execute("SELECT 1 FROM user_become_artist WHERE user_id=%s", [user_id])
-                    if cursor.fetchone():
+                    cursor.execute("SELECT artist_id FROM user_become_artist WHERE user_id=%s", [user_id])
+                    row = cursor.fetchone()
+                    if row:
                         role = 'artist'
+                        artist_id = row[0]
         except Exception:
             pass
         tokens = {}
@@ -35,6 +38,7 @@ class CustomTokenObtainPairView(BaseTokenObtainPairView):
             'refresh': tokens.get('refresh'),
             'role': role,
             'user_id': user_id,
+            'artist_id': artist_id,
         }
         return api_response(code=0, message='登录成功', data=flat)
 
@@ -103,3 +107,26 @@ class IdentifyTypeView(APIView):
             if cursor.fetchone():
                 t = 'artist'
         return api_response(code=0, message='成功', data={'type': t, 'user_id': u.id})
+
+
+class MeView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    def get(self, request):
+        user = request.user
+        role = 'user'
+        artist_id = None
+        
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT artist_id FROM user_become_artist WHERE user_id=%s", [user.id])
+            row = cursor.fetchone()
+            if row:
+                role = 'artist'
+                artist_id = row[0]
+        
+        data = {
+            'user_id': user.id,
+            'username': user.username,
+            'role': role,
+            'artist_id': artist_id
+        }
+        return api_response(data=data)

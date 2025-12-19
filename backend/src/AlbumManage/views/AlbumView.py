@@ -72,13 +72,55 @@ class AlbumViewSet(BaseReadOnlyViewSet):
         return api_response(data=data)
 
 
+class MyAlbumListView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    def get(self, request):
+        artist_id = None
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT artist_id FROM user_become_artist WHERE user_id=%s", [request.user.id])
+            row = cursor.fetchone()
+            if row:
+                artist_id = row[0]
+        
+        if not artist_id:
+             return api_response(code=1, message='仅歌手可查看专辑列表', data=None)
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT album_id, album_name, release_time, album_artist_id "
+                "FROM album WHERE album_artist_id=%s ORDER BY release_time DESC",
+                [artist_id]
+            )
+            rows = cursor.fetchall()
+        
+        data = [
+            {
+                'album_id': r[0],
+                'album_name': r[1],
+                'release_time': r[2],
+                'singer_id': r[3]
+            }
+            for r in rows
+        ]
+        
+        return api_response(data=data)
+
+
 class MyAlbumCreateView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     def post(self, request):
         # 仅允许 artist 角色创建
         role = getattr(getattr(request.user, 'profile', None), 'roles', '')
         if role != 'artist':
-            return api_response(code=1, message='仅歌手可创建专辑', data=None)
+            # Check SQL too
+            is_artist = False
+            with connection.cursor() as cursor:
+                 cursor.execute("SELECT 1 FROM user_become_artist WHERE user_id=%s", [request.user.id])
+                 if cursor.fetchone():
+                     is_artist = True
+            if not is_artist:
+                 return api_response(code=1, message='仅歌手可创建专辑', data=None)
+        
         name = request.data.get('album_name')
         release_time = request.data.get('release_time')
         singer_id = request.data.get('singer_id')
@@ -106,3 +148,34 @@ class MyAlbumCreateView(APIView):
                 r = cursor.fetchone()
                 new_id = r[0] if r else None
         return api_response(message='创建成功', data={'id': new_id, 'title': name})
+
+class MyAlbumDeleteView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    def delete(self, request, pk):
+        # 验证歌手身份
+        artist_id = None
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT artist_id FROM user_become_artist WHERE user_id=%s", [request.user.id])
+            row = cursor.fetchone()
+            if row:
+                artist_id = row[0]
+        
+        if not artist_id:
+            return api_response(code=1, message='仅歌手可操作', data=None)
+
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT album_artist_id FROM album WHERE album_id=%s", [pk])
+            row = cursor.fetchone()
+            if not row:
+                return api_response(code=404, message='专辑不存在', data=None)
+            if row[0] != artist_id:
+                return api_response(code=403, message='无权删除此专辑', data=None)
+            
+            # 删除专辑前，需要把里面的歌曲 album_id 置空? 还是级联删除?
+            # 通常应该把歌曲移出专辑，而不是删除歌曲
+            cursor.execute("UPDATE song SET album_id=NULL WHERE album_id=%s", [pk])
+            
+            # 删除专辑
+            cursor.execute("DELETE FROM album WHERE album_id=%s", [pk])
+            
+        return api_response(message='删除成功', data=None)

@@ -13,3 +13,17 @@ export async function upgradeToArtist(artistName) {
     }
     return data
 }
+
+export async function getUserInfo() {
+    const res = await fetch('/api/auth/me/', {
+        method: 'GET',
+        headers: getAuthHeaders()
+    })
+    
+    const data = await res.json()
+    if (!res.ok || (typeof data.code !== 'undefined' && data.code !== 0)) {
+        // 静默失败或抛出异常，视情况而定
+        throw new Error(data.message || '获取用户信息失败')
+    }
+    return data.data
+}

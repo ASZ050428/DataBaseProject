@@ -20,6 +20,7 @@ from UserManage.views.UserView import (
     RegisterView,
     VerifyPasswordView,
     IdentifyTypeView,
+    MeView,
 )
 from ArtistManage.views.ArtistView import UpgradeArtistView
 
@@ -36,6 +37,7 @@ urlpatterns = [
     path('api/auth/upgrade-artist/', UpgradeArtistView.as_view(), name='auth-upgrade-artist'),
     path('api/auth/verify/', VerifyPasswordView.as_view(), name='auth-verify'),
     path('api/auth/type/', IdentifyTypeView.as_view(), name='auth-type'),
+    path('api/auth/me/', MeView.as_view(), name='auth-me'),
 ]
 
 from django.conf import settings

@@ -17,3 +17,40 @@ export async function uploadSong(formData) {
     }
     return data
 }
+
+export async function getMySongs() {
+    const res = await fetch('/api/song/my/list/', {
+        method: 'GET',
+        headers: getAuthHeaders()
+    })
+    const data = await res.json()
+    if (!res.ok || (typeof data.code !== 'undefined' && data.code !== 0)) {
+        throw new Error(data.message || '获取歌曲失败')
+    }
+    return data.data
+}
+
+export async function updateSong(id, updateData) {
+    const res = await fetch(`/api/song/my/${id}/`, {
+        method: 'PATCH',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(updateData)
+    })
+    const data = await res.json()
+    if (!res.ok || (typeof data.code !== 'undefined' && data.code !== 0)) {
+        throw new Error(data.message || '更新歌曲失败')
+    }
+    return data.data
+}
+
+export async function deleteSong(id) {
+    const res = await fetch(`/api/song/my/${id}/delete/`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+    })
+    const data = await res.json()
+    if (!res.ok || (typeof data.code !== 'undefined' && data.code !== 0)) {
+        throw new Error(data.message || '删除歌曲失败')
+    }
+    return data.data
+}

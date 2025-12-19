@@ -27,7 +27,7 @@
                             <div class="item-sub">时长: {{ formatDuration(song.duration) }}</div>
                         </div>
                         <button class="action-btn" @click="emit('play', song.audio_url)" style="margin-right: 10px;">▶ 播放</button>
-                        <button class="action-btn">➕ 收藏</button>
+                        <button class="action-btn" @click="openCollectModal(song.song_id)">➕ 收藏</button>
                     </li>
                 </ul>
             </div>
@@ -42,7 +42,7 @@
                             <div class="item-title">{{ album.album_name }}</div>
                             <div class="item-sub">发行时间: {{ formatDate(album.release_time) }}</div>
                         </div>
-                        <button class="action-btn">❤️ 收藏</button>
+                        <button class="action-btn" @click="handleCollectAlbum(album.album_id)">❤️ 收藏</button>
                     </li>
                 </ul>
             </div>
@@ -57,9 +57,25 @@
                             <div class="item-title">{{ artist.artist_name }}</div>
                             <div class="item-sub">地区: {{ artist.region }}</div>
                         </div>
-                        <button class="action-btn">❤️ 关注</button>
+                        <button class="action-btn" @click="handleFollowArtist(artist.artist_id)">❤️ 关注</button>
                     </li>
                 </ul>
+            </div>
+        </div>
+
+        <!-- 收藏弹窗 -->
+        <div v-if="showModal" class="modal-overlay" @click="showModal = false">
+            <div class="modal-content" @click.stop>
+                <h3>选择收藏歌单</h3>
+                <div v-if="myCollections.length === 0" class="empty-list">
+                    暂无歌单，请先去"我的"页面创建
+                </div>
+                <ul v-else class="collection-list">
+                    <li v-for="list in myCollections" :key="list.id" @click="confirmCollect(list.id)">
+                        {{ list.title }}
+                    </li>
+                </ul>
+                <button class="close-btn" @click="showModal = false">取消</button>
             </div>
         </div>
     </div>
@@ -68,6 +84,12 @@
 <script setup>
 import { ref } from 'vue'
 import { searchSong, searchAlbum, searchArtist } from '../../api/search'
+import { 
+    getCollectionsList, 
+    addSongToCollection, 
+    addFavoriteAlbum, 
+    addFavoriteArtist 
+} from '../../api/collection'
 
 const emit = defineEmits(['play'])
 
@@ -76,6 +98,51 @@ const songs = ref([])
 const albums = ref([])
 const artists = ref([])
 const hasSearched = ref(false)
+
+// 收藏相关状态
+const showModal = ref(false)
+const myCollections = ref([])
+const targetSongId = ref(null)
+
+async function openCollectModal(songId) {
+    targetSongId.value = songId
+    try {
+        const list = await getCollectionsList()
+        myCollections.value = Array.isArray(list) ? list : []
+        showModal.value = true
+    } catch (e) {
+        alert(e.message || '获取歌单失败')
+    }
+}
+
+async function handleCollectAlbum(albumId) {
+    try {
+        await addFavoriteAlbum(albumId)
+        alert('专辑收藏成功！')
+    } catch (e) {
+        alert(e.message || '收藏失败')
+    }
+}
+
+async function handleFollowArtist(artistId) {
+    try {
+        await addFavoriteArtist(artistId)
+        alert('关注成功！')
+    } catch (e) {
+        alert(e.message || '关注失败')
+    }
+}
+
+async function confirmCollect(listId) {
+    if (!targetSongId.value) return
+    try {
+        await addSongToCollection(listId, targetSongId.value)
+        alert('收藏成功！')
+        showModal.value = false
+    } catch (e) {
+        alert(e.message || '收藏失败')
+    }
+}
 
 async function search() {
     if (!query.value.trim()) return
@@ -155,6 +222,65 @@ h1 {
 
 .search-box input:focus {
     border-color: #2563eb;
+}
+
+/* 弹窗样式 */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    width: 300px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.modal-content h3 {
+    margin-top: 0;
+    text-align: center;
+}
+
+.collection-list {
+    list-style: none;
+    padding: 0;
+    margin: 20px 0;
+}
+
+.collection-list li {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+}
+
+.collection-list li:hover {
+    background: #f5f5f5;
+}
+
+.close-btn {
+    width: 100%;
+    padding: 8px;
+    background: #ddd;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.empty-list {
+    text-align: center;
+    color: #999;
+    padding: 20px 0;
 }
 
 .search-box button {

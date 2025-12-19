@@ -95,6 +95,7 @@ class ArtistViewSet(BaseReadOnlyViewSet):  # 类名更贴合模块功能
         data = [
             {
                 'id': r[0],
+                'artist_id': r[0],
                 'artist_name': r[1],
                 'region': r[2],
                 'bio': r[3]
@@ -116,6 +117,7 @@ class ArtistViewSet(BaseReadOnlyViewSet):  # 类名更贴合模块功能
             
             artist_info = {
                 'id': row[0],
+                'artist_id': row[0],
                 'artist_name': row[1],
                 'region': row[2],
                 'bio': row[3]

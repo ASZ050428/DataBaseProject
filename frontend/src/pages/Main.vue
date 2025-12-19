@@ -51,7 +51,11 @@
       </div>
 
       <div v-else-if="currentTab === 'my'">
-        <MinePage @play="playSong" />
+        <MinePage 
+          @play="playSong" 
+          @select-artist="selectArtist"
+          @select-album="selectAlbum"
+        />
       </div>
     </div>
 

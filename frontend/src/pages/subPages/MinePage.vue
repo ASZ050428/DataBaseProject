@@ -18,7 +18,6 @@
             </ul>
         </nav>
         <div v-if="currentContent != 'personalInfo'" class="favorites-section">
-            <h2>我的收藏</h2>
             <div v-if="currentContent === 'favoriteSongsList'" class="fav-group">
                 <!-- 列表模式 -->
                 <div v-if="!currentCollectionId">
@@ -63,7 +62,7 @@
                 <div v-if="favoriteAlbums.length === 0" class="empty-tip">暂无收藏专辑</div>
                 <ul v-else class="fav-list">
                     <li v-for="album in favoriteAlbums" :key="album.id" class="fav-item">
-                        <div class="fav-info">
+                        <div class="fav-info" @click="emit('select-album', album.id)" style="cursor: pointer">
                             <div class="fav-title">{{ album.title }}</div>
                         </div>
                         <button class="remove-btn" @click="removeAlbum(album.id)">💔</button>
@@ -77,7 +76,7 @@
                 <div v-if="favoriteArtists.length === 0" class="empty-tip">暂无关注歌手</div>
                 <ul v-else class="fav-list">
                     <li v-for="artist in favoriteArtists" :key="artist.id" class="fav-item">
-                        <div class="fav-info">
+                        <div class="fav-info" @click="emit('select-artist', artist.id)" style="cursor: pointer">
                             <div class="fav-title">{{ artist.title }}</div>
                         </div>
                         <button class="remove-btn" @click="removeArtist(artist.id)">💔</button>
@@ -199,7 +198,7 @@ import {
     getCollectionListSongs
 } from '../../api/collection'
 
-const emit = defineEmits(['play'])
+const emit = defineEmits(['play', 'select-album', 'select-artist'])
 import { upgradeToArtist } from '../../api/user'
 import { uploadSong } from '../../api/song'
 

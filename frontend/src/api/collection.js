@@ -81,6 +81,15 @@ export async function removeFavoriteAlbum(albumId) {
     return true
 }
 
+export async function addFavoriteAlbum(albumId) {
+    const res = await fetch('/api/collection/my/albums/', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ album_id: albumId })
+    })
+    return handleResponse(res, '收藏专辑失败')
+}
+
 // 6. 获取我关注的歌手
 export async function getFavoriteArtists() {
     const res = await fetch('/api/collection/my/artists/', {
@@ -100,10 +109,28 @@ export async function removeFavoriteArtist(artistId) {
     return true
 }
 
+export async function addFavoriteArtist(artistId) {
+    const res = await fetch('/api/collection/my/artists/', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ artist_id: artistId })
+    })
+    return handleResponse(res, '关注歌手失败')
+}
+
 export async function getCollectionListSongs(listId) {
     const res = await fetch(`/api/collection/my/lists/${listId}/songs/`, {
         method: 'GET',
         headers: getAuthHeaders(),
     })
     return handleResponse(res, '获取歌单歌曲失败')
+}
+
+export async function addSongToCollection(listId, songId) {
+    const res = await fetch(`/api/collection/my/lists/${listId}/songs/`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ song_id: songId })
+    })
+    return handleResponse(res, '添加歌曲失败')
 }

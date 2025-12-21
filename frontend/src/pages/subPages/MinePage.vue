@@ -103,6 +103,7 @@
                 <div class="sub-nav" style="margin-bottom: 20px; display: flex; gap: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
                     <span @click="creatorContent = 'publishedSongs'" style="cursor: pointer; padding: 5px 10px;" :style="creatorContent === 'publishedSongs' ? 'font-weight: bold; color: #4caf50; border-bottom: 2px solid #4caf50;' : ''">已发布歌曲</span>
                     <span @click="creatorContent = 'publishedAlbums'" style="cursor: pointer; padding: 5px 10px;" :style="creatorContent === 'publishedAlbums' ? 'font-weight: bold; color: #4caf50; border-bottom: 2px solid #4caf50;' : ''">已发布专辑</span>
+                    <span @click="creatorContent = 'artistProfile'" style="cursor: pointer; padding: 5px 10px;" :style="creatorContent === 'artistProfile' ? 'font-weight: bold; color: #4caf50; border-bottom: 2px solid #4caf50;' : ''">歌手信息</span>
                 </div>
 
                 <div v-if="creatorContent === 'publishedSongs'">
@@ -136,6 +137,24 @@
                             </div>
                         </li>
                     </ul>
+                </div>
+
+                <div v-if="creatorContent === 'artistProfile'" class="info-section" style="margin: 0;">
+                    <div class="info-item">
+                        <span class="label">歌手名称</span>
+                        <input type="text" v-model="artistProfile.name" placeholder="请输入歌手名称" />
+                    </div>
+                    <div class="info-item">
+                        <span class="label">地区</span>
+                        <input type="text" v-model="artistProfile.region" placeholder="请输入地区" />
+                    </div>
+                    <div class="info-item" style="align-items: flex-start;">
+                        <span class="label" style="margin-top: 8px;">简介</span>
+                        <textarea v-model="artistProfile.bio" placeholder="请输入简介" style="flex: 1; padding: 8px 12px; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 16px; outline: none; min-height: 100px; resize: vertical; font-family: inherit;"></textarea>
+                    </div>
+                    <div class="info-item">
+                        <button @click="saveArtistProfile">保存修改</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -336,7 +355,7 @@ import {
 } from '../../api/collection'
 
 const emit = defineEmits(['play', 'select-album', 'select-artist'])
-import { upgradeToArtist, getUserInfo, updatePassword, updateUserName } from '../../api/user'
+import { upgradeToArtist, getUserInfo, updatePassword, updateUserName, getArtistProfile, updateArtistProfile } from '../../api/user'
 import { uploadSong, getMySongs, deleteSong, updateSong } from '../../api/song'
 import { createAlbum, getMyAlbums, deleteAlbum } from '../../api/album'
 
@@ -354,6 +373,11 @@ const newPassword = ref('')
 const creatorContent = ref('publishedSongs')
 const mySongs = ref([])
 const myAlbums = ref([])
+const artistProfile = ref({
+    name: '',
+    region: '',
+    bio: ''
+})
 const showCreateAlbumModal = ref(false)
 const showAddToAlbumModal = ref(false)
 const selectedSongId = ref(null)
@@ -640,9 +664,37 @@ async function loadCreatorData() {
     }
 }
 
+async function loadArtistProfileData() {
+    try {
+        const data = await getArtistProfile()
+        artistProfile.value = data
+    } catch (e) {
+        showMessage(e.message || '加载歌手信息失败', 'error')
+    }
+}
+
+async function saveArtistProfile() {
+    if (!artistProfile.value.name.trim()) {
+        showMessage('歌手名称不能为空', 'warning')
+        return
+    }
+    try {
+        await updateArtistProfile(artistProfile.value)
+        showMessage('保存成功', 'success')
+    } catch (e) {
+        showMessage(e.message || '保存失败', 'error')
+    }
+}
+
 watch(currentContent, (newVal) => {
     if (newVal === 'creatorCenter') {
         loadCreatorData()
+    }
+})
+
+watch(creatorContent, (newVal) => {
+    if (newVal === 'artistProfile') {
+        loadArtistProfileData()
     }
 })
 

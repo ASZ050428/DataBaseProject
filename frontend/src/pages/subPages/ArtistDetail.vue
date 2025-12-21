@@ -1,7 +1,7 @@
 <template>
     <div class="artist-detail-page">
-        <button class="back-btn" @click="$emit('back')">← 返回列表</button>
-        
+        <button class="back-btn" @click="$emit('back')">返回列表</button>
+
         <div v-if="loading" class="loading">加载中...</div>
         <div v-else-if="error" class="error">{{ error }}</div>
         <div v-else class="content">
@@ -29,7 +29,8 @@
                 <h2>专辑</h2>
                 <div v-if="!artist.albums || artist.albums.length === 0" class="empty">暂无专辑</div>
                 <ul v-else class="album-grid">
-                    <li v-for="album in artist.albums" :key="album.album_id" class="album-card" @click="$emit('select-album', album.album_id)">
+                    <li v-for="album in artist.albums" :key="album.album_id" class="album-card"
+                        @click="$emit('select-album', album.album_id)">
                         <div class="album-info">
                             <h3>{{ album.album_name }}</h3>
                             <p class="release-time">{{ album.release_time }}</p>
@@ -87,12 +88,18 @@ watch(() => props.artistId, loadData)
 }
 
 .back-btn {
-    margin-bottom: 20px;
-    padding: 8px 16px;
-    background: #f0f0f0;
+    padding: 6px 12px;
+    background-color: #ed3a3a;
     border: none;
-    border-radius: 4px;
+    border-radius: 6px;
     cursor: pointer;
+    font-size: 14px;
+    color: white;
+    transition: all 0.3s;
+}
+
+.back-btn:hover {
+    background-color: #b11a1a;
 }
 
 .header {
@@ -165,7 +172,7 @@ watch(() => props.artistId, loadData)
 
 .album-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .album-info h3 {
@@ -173,7 +180,9 @@ watch(() => props.artistId, loadData)
     font-size: 1rem;
 }
 
-.loading, .error, .empty {
+.loading,
+.error,
+.empty {
     text-align: center;
     color: #666;
     padding: 20px;

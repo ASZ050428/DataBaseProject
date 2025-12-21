@@ -66,3 +66,28 @@ export async function updatePassword(data) {
     }
     return resData
 }
+
+export async function getArtistProfile() {
+    const res = await fetch('/api/artist/profile/', {
+        method: 'GET',
+        headers: getAuthHeaders()
+    })
+    const data = await res.json()
+    if (!res.ok || (data.code && data.code !== 0)) {
+        throw new Error(data.message || '获取歌手信息失败')
+    }
+    return data.data
+}
+
+export async function updateArtistProfile(profileData) {
+    const res = await fetch('/api/artist/profile/', {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(profileData)
+    })
+    const data = await res.json()
+    if (!res.ok || (data.code && data.code !== 0)) {
+        throw new Error(data.message || '更新歌手信息失败')
+    }
+    return data
+}

@@ -30,8 +30,8 @@
             <div v-else-if="currentCollectionListSongs.length === 0" class="empty-tip">此歌单暂无歌曲</div>
             <ul v-else class="fav-list">
                 <li v-for="song in currentCollectionListSongs" :key="song.id" class="fav-item">
-                    <div class="fav-info" @click="$emit('play', song.audio_url)" style="cursor: pointer;" title="点击播放">
-                        <div class="fav-title">▶ {{ song.title }}</div>
+                    <div class="fav-info" style="cursor: pointer;" title="点击播放">
+                        <div class="fav-title">{{ song.title }}</div>
                     </div>
                     <div class="actions" style="display: flex; gap: 10px; align-items: center;">
                         <button @click="$emit('play', song.audio_url)" style="padding: 4px 8px; font-size: 12px; cursor: pointer;">▶ 播放</button>

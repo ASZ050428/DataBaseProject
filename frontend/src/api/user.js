@@ -1,4 +1,4 @@
-import { getAuthHeaders } from './collection'
+import { getAuthHeaders, handleResponse } from './collection'
 
 export async function upgradeToArtist(artistName) {
     const res = await fetch('/api/auth/upgrade-artist/', {
@@ -7,11 +7,7 @@ export async function upgradeToArtist(artistName) {
         body: JSON.stringify({ name: artistName })
     })
 
-    const data = await res.json()
-    if (!res.ok || (typeof data.code !== 'undefined' && data.code !== 0)) {
-        throw new Error(data.message || '升级失败')
-    }
-    return data
+    return handleResponse(res, '升级失败')
 }
 
 export async function getUserInfo() {
@@ -20,12 +16,7 @@ export async function getUserInfo() {
         headers: getAuthHeaders()
     })
     
-    const data = await res.json()
-    if (!res.ok || (typeof data.code !== 'undefined' && data.code !== 0)) {
-        // 静默失败或抛出异常，视情况而定
-        throw new Error(data.message || '获取用户信息失败')
-    }
-    return data.data
+    return handleResponse(res, '获取用户信息失败')
 }
 
 export async function updateUserName(newUsername) {

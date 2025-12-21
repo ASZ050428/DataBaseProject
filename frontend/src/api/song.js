@@ -1,4 +1,4 @@
-import { getAuthHeaders } from './collection'
+import { getAuthHeaders, handleResponse } from './collection'
 
 export async function uploadSong(formData) {
     const headers = getAuthHeaders()
@@ -11,11 +11,7 @@ export async function uploadSong(formData) {
         body: formData
     })
 
-    const data = await res.json()
-    if (!res.ok || (typeof data.code !== 'undefined' && data.code !== 0)) {
-        throw new Error(data.message || '上传失败')
-    }
-    return data
+    return handleResponse(res, '上传失败')
 }
 
 export async function getMySongs() {
@@ -23,11 +19,7 @@ export async function getMySongs() {
         method: 'GET',
         headers: getAuthHeaders()
     })
-    const data = await res.json()
-    if (!res.ok || (typeof data.code !== 'undefined' && data.code !== 0)) {
-        throw new Error(data.message || '获取歌曲失败')
-    }
-    return data.data
+    return handleResponse(res, '获取歌曲失败')
 }
 
 export async function updateSong(id, updateData) {
@@ -36,11 +28,7 @@ export async function updateSong(id, updateData) {
         headers: getAuthHeaders(),
         body: JSON.stringify(updateData)
     })
-    const data = await res.json()
-    if (!res.ok || (typeof data.code !== 'undefined' && data.code !== 0)) {
-        throw new Error(data.message || '更新歌曲失败')
-    }
-    return data.data
+    return handleResponse(res, '更新歌曲失败')
 }
 
 export async function deleteSong(id) {
@@ -48,9 +36,5 @@ export async function deleteSong(id) {
         method: 'DELETE',
         headers: getAuthHeaders()
     })
-    const data = await res.json()
-    if (!res.ok || (typeof data.code !== 'undefined' && data.code !== 0)) {
-        throw new Error(data.message || '删除歌曲失败')
-    }
-    return data.data
+    return handleResponse(res, '删除歌曲失败')
 }

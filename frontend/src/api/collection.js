@@ -11,13 +11,22 @@ export function getAuthHeaders() {
     return headers
 }
 
-async function handleResponse(res, defaultErrorMsg) {
+export async function handleResponse(res, defaultErrorMsg) {
     if (res.status === 401) {
         localStorage.removeItem('user')
         window.location.href = '/login'
         throw new Error('登录已过期，请重新登录')
     }
-    const data = await res.json()
+    
+    let data;
+    const text = await res.text();
+    try {
+        data = text ? JSON.parse(text) : {};
+    } catch (e) {
+        console.error('Response parse error:', e, 'Text:', text);
+        throw new Error(defaultErrorMsg + ': 服务器响应格式错误');
+    }
+
     if (!res.ok || (typeof data.code !== 'undefined' && data.code !== 0)) {
         throw new Error(data.message || defaultErrorMsg)
     }

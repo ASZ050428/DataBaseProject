@@ -1,17 +1,4 @@
-import { getAuthHeaders } from './collection'
-
-async function handleResponse(res, defaultErrorMsg) {
-    if (res.status === 401) {
-        localStorage.removeItem('user')
-        window.location.href = '/login'
-        throw new Error('登录已过期，请重新登录')
-    }
-    const data = await res.json()
-    if (!res.ok || (typeof data.code !== 'undefined' && data.code !== 0)) {
-        throw new Error(data.message || defaultErrorMsg)
-    }
-    return data.data
-}
+import { getAuthHeaders, handleResponse } from './collection'
 
 export async function createAlbum(data) {
     const res = await fetch('/api/album/my/create/', {

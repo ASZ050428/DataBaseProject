@@ -53,7 +53,10 @@
                             <div class="fav-info" @click="emit('play', song.audio_url)" style="cursor: pointer;" title="点击播放">
                                 <div class="fav-title">▶ {{ song.title }}</div>
                             </div>
-                            <button class="remove-btn" @click="removeSongFromList(song.id)">💔</button>
+                            <div class="actions" style="display: flex; gap: 10px; align-items: center;">
+                                <button @click="emit('play', song.audio_url)" style="padding: 4px 8px; font-size: 12px; cursor: pointer;">▶ 播放</button>
+                                <button class="remove-btn" @click="removeSongFromList(song.id)">💔</button>
+                            </div>
                         </li>
                     </ul>
                 </div>
@@ -79,7 +82,7 @@
                 <div v-if="favoriteArtists.length === 0" class="empty-tip">暂无关注歌手</div>
                 <ul v-else class="fav-list">
                     <li v-for="artist in favoriteArtists" :key="artist.id" class="fav-item">
-                        <div class="fav-info" @click="emit('select-artist', artist.id)" style="cursor: pointer">
+                        <div class="fav-info" @click="emit('select-artist', artist.id)" style="cursor: pointer" title="点击查看歌手详情">
                             <div class="fav-title">{{ artist.title }}</div>
                         </div>
                         <button class="remove-btn" @click="removeArtist(artist.id)">💔</button>
@@ -111,6 +114,7 @@
                                 <div class="fav-sub" style="font-size: 12px; color: #888;">{{ song.album_title ? `专辑: ${song.album_title}` : '未归属专辑' }}</div>
                             </div>
                             <div class="actions" style="display: flex; gap: 10px; align-items: center;">
+                                <button @click="emit('play', song.audio_url)" style="padding: 4px 8px; font-size: 12px; cursor: pointer;">▶ 播放</button>
                                 <button @click="openAddToAlbum(song)" style="padding: 4px 8px; font-size: 12px; cursor: pointer;">管理专辑</button>
                                 <button class="remove-btn" @click="handleDeleteSong(song.song_id)">🗑️</button>
                             </div>
@@ -122,7 +126,7 @@
                     <div v-if="myAlbums.length === 0" class="empty-tip">暂无发布专辑</div>
                     <ul v-else class="fav-list">
                         <li v-for="album in myAlbums" :key="album.album_id" class="fav-item">
-                            <div class="fav-info">
+                            <div class="fav-info" @click="emit('select-album', album.album_id)" style="cursor: pointer" title="点击查看专辑详情">
                                 <div class="fav-title">{{ album.album_name }}</div>
                                 <div class="fav-sub" style="font-size: 12px; color: #888;">发布于: {{ album.release_time }}</div>
                             </div>

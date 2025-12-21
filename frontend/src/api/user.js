@@ -27,3 +27,51 @@ export async function getUserInfo() {
     }
     return data.data
 }
+
+export async function updateUserName(newUsername) {
+    const res = await fetch('/api/auth/me/', {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ username: newUsername })
+    })
+    
+    let data;
+    try {
+        data = await res.json()
+    } catch (e) {
+        throw new Error(`服务器响应异常 (${res.status})`)
+    }
+
+    if (!res.ok) {
+        throw new Error(data.message || `请求失败 (${res.status})`)
+    }
+
+    if (typeof data.code !== 'undefined' && data.code !== 0) {
+        throw new Error(data.message || '更新用户名失败')
+    }
+    return data
+}
+
+export async function updatePassword(data) {
+    const res = await fetch('/api/auth/change-password/', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(data)
+    })
+    
+    let resData;
+    try {
+        resData = await res.json()
+    } catch (e) {
+        throw new Error(`服务器响应异常 (${res.status})`)
+    }
+
+    if (!res.ok) {
+        throw new Error(resData.message || `请求失败 (${res.status})`)
+    }
+
+    if (typeof resData.code !== 'undefined' && resData.code !== 0) {
+        throw new Error(resData.message || '修改密码失败')
+    }
+    return resData
+}

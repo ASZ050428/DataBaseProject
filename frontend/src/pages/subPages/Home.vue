@@ -82,6 +82,7 @@
 </template>
 
 <script setup>
+import { showMessage } from '../../utils/message'
 import { ref } from 'vue'
 import { searchSong, searchAlbum, searchArtist } from '../../api/search'
 import { 
@@ -111,25 +112,25 @@ async function openCollectModal(songId) {
         myCollections.value = Array.isArray(list) ? list : []
         showModal.value = true
     } catch (e) {
-        alert(e.message || '获取歌单失败')
+        showMessage(e.message || '获取歌单失败', 'error')
     }
 }
 
 async function handleCollectAlbum(albumId) {
     try {
         await addFavoriteAlbum(albumId)
-        alert('专辑收藏成功！')
+        showMessage('专辑收藏成功！', 'success')
     } catch (e) {
-        alert(e.message || '收藏失败')
+        showMessage(e.message || '收藏失败', 'error')
     }
 }
 
 async function handleFollowArtist(artistId) {
     try {
         await addFavoriteArtist(artistId)
-        alert('关注成功！')
+        showMessage('关注成功！', 'success')
     } catch (e) {
-        alert(e.message || '关注失败')
+        showMessage(e.message || '关注失败', 'error')
     }
 }
 
@@ -137,10 +138,10 @@ async function confirmCollect(listId) {
     if (!targetSongId.value) return
     try {
         await addSongToCollection(listId, targetSongId.value)
-        alert('收藏成功！')
+        showMessage('收藏成功！', 'success')
         showModal.value = false
     } catch (e) {
-        alert(e.message || '收藏失败')
+        showMessage(e.message || '收藏失败', 'error')
     }
 }
 

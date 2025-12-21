@@ -140,12 +140,10 @@
             <div class="info-item">
                 <span class="label">用户名</span>
                 <input type="text" v-model="username" placeholder="请输入新的用户名" />
-                <button>保存</button>
+                <button @click="changeUserName">保存</button>
             </div>
             <div class="info-item">
-                <span class="label">密码</span>
-                <input type="password" v-model="password" placeholder="请输入新的密码" />
-                <button>保存</button>
+                <button @click="isChangingPassword = true" >更改密码</button>
             </div>
             
             <!-- 升级歌手入口 -->
@@ -155,11 +153,19 @@
                 <p class="upgrade-desc">升级为歌手账号，发布属于你的音乐作品</p>
                 <button class="upgrade-btn" @click="showUpgradeModal = true; artistName = username">立即升级</button>
             </div>
-            <div class="upgrade-section" v-else>
-                <div class="divider"></div>
-                <h3>创作者中心</h3>
-                <p class="upgrade-desc">您已是认证歌手，快去发布作品吧！</p>
-                <button class="upgrade-btn" @click="showUploadModal = true">上传歌曲</button>
+        </div>
+    </div>
+
+    <div v-if="isChangingPassword">
+        <div class="modal-overlay" @click.self="isChangingPassword = false">
+            <div class="modal-content">
+                <h3>修改密码</h3>
+                <input type="password" v-model="oldPassword" placeholder="旧密码" class="modal-input" />
+                <input type="password" v-model="newPassword" placeholder="新密码" class="modal-input" />
+                <div class="modal-actions">
+                    <button @click="changePassword" class="confirm-btn">确认修改</button>
+                    <button @click="isChangingPassword = false" class="cancel-btn">取消</button>
+                </div>
             </div>
         </div>
     </div>
@@ -312,6 +318,7 @@
 </template>
 
 <script setup>
+import { showMessage } from '../../utils/message'
 import { ref, onMounted, watch, computed } from 'vue'
 import { 
     getCollectionsList, 
@@ -325,17 +332,19 @@ import {
 } from '../../api/collection'
 
 const emit = defineEmits(['play', 'select-album', 'select-artist'])
-import { upgradeToArtist, getUserInfo } from '../../api/user'
+import { upgradeToArtist, getUserInfo, updatePassword, updateUserName } from '../../api/user'
 import { uploadSong, getMySongs, deleteSong, updateSong } from '../../api/song'
 import { createAlbum, getMyAlbums, deleteAlbum } from '../../api/album'
 
 const currentContent = ref('favoriteSongsList')
 const username = ref('')
-const password = ref('')
 const isArtist = ref(false)
 const showUpgradeModal = ref(false)
 const artistName = ref('')
 const artistId = ref(null)
+const isChangingPassword = ref(false)
+const oldPassword = ref('')
+const newPassword = ref('')
 
 // Creator Center State
 const creatorContent = ref('publishedSongs')
@@ -349,6 +358,46 @@ const createAlbumForm = ref({
     name: '',
     release_time: new Date().toISOString().split('T')[0],
 })
+
+// 个人信息
+async function changeUserName() {
+    if (!username.value.trim()) {
+        showMessage('用户名不能为空', 'warning')
+        return
+    }
+    try {
+        await updateUserName(username.value)
+        showMessage('用户名更新成功，请使用新用户名重新登录', 'success')
+        
+        // 更新成功后，强制退出登录，让用户用新名字重新登
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+        window.location.href = '/login' 
+    } catch (e) {
+        showMessage(e.message || '更新失败', 'error')
+    }
+}
+
+async function changePassword() {
+    if (!newPassword.value.trim()) {
+        showMessage('新密码不能为空', 'warning')
+        return
+    }
+    if (!oldPassword.value.trim()) {
+        showMessage('旧密码不能为空', 'warning')
+        return
+    }
+
+    try {
+        await updatePassword({ old_password: oldPassword.value, new_password: newPassword.value })
+        showMessage('密码修改成功，请重新登录', 'success')
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+        window.location.href = '/login'
+    } catch (e) {
+        showMessage(e.message || '修改失败', 'error')
+    }
+}
 
 // 上传歌曲相关
 const showUploadModal = ref(false)
@@ -375,7 +424,7 @@ function handleFileChange(event) {
 
 async function handleUploadSong() {
     if (!uploadForm.value.title || !uploadForm.value.file || !uploadForm.value.duration || !uploadForm.value.release_date) {
-        alert('请填写完整信息 (标题, 文件, 时长, 发布日期)')
+        showMessage('请填写完整信息 (标题, 文件, 时长, 发布日期)', 'warning')
         return
     }
     
@@ -389,7 +438,7 @@ async function handleUploadSong() {
     
     try {
         await uploadSong(formData)
-        alert('上传成功！')
+        showMessage('上传成功！', 'success')
         showUploadModal.value = false
         // 重置表单
         uploadForm.value = {
@@ -401,7 +450,7 @@ async function handleUploadSong() {
             cover_url: ''
         }
     } catch (e) {
-        alert(e.message || '上传失败')
+        showMessage(e.message || '上传失败', 'error')
     }
 }
 
@@ -429,7 +478,6 @@ onMounted(async () => {
         if (userStr) {
             const user = JSON.parse(userStr)
             username.value = user.username || ''
-            password.value = user.password || ''
             isArtist.value = user.role === 'artist'
             artistId.value = user.artist_id
         }
@@ -471,12 +519,12 @@ onMounted(async () => {
 
 async function handleUpgrade() {
     if (!artistName.value.trim()) {
-        alert('请输入歌手名称')
+        showMessage('请输入歌手名称', 'warning')
         return
     }
     try {
         await upgradeToArtist(artistName.value)
-        alert('升级成功！请重新登录以生效')
+        showMessage('升级成功！请重新登录以生效', 'success')
         // 更新本地存储的角色信息
         const userStr = localStorage.getItem('user')
         if (userStr) {
@@ -486,14 +534,14 @@ async function handleUpgrade() {
         }
         window.location.reload()
     } catch (e) {
-        alert(e.message || '升级失败')
+        showMessage(e.message || '升级失败', 'error')
     }
 }
 
 // 添加收藏列表
 async function addList() {
     if (!newListName.value.trim()) {
-        alert('请输入列表名称')
+        showMessage('请输入列表名称', 'warning')
         return
     }
     
@@ -507,7 +555,7 @@ async function addList() {
         newListName.value = '' // 清空输入框
         showAddListModal.value = false // 关闭弹窗
     } catch (e) {
-        alert(e.message || '添加失败')
+        showMessage(e.message || '添加失败', 'error')
     }
 }
 
@@ -519,7 +567,7 @@ async function showCollectionList(list) {
         const songs = await getCollectionListSongs(list.id)
         currentCollectionListSongs.value = songs || []
     } catch (e) {
-        alert(e.message || '加载歌单歌曲失败')
+        showMessage(e.message || '加载歌单歌曲失败', 'error')
     }
 }
 
@@ -531,7 +579,7 @@ function backToCollections() {
 
 function removeSongFromList(songId) {
     // TODO: 待实现移除功能
-    alert('移除歌曲功能开发中...')
+    showMessage('移除歌曲功能开发中...', 'info')
 }
 
 
@@ -574,11 +622,10 @@ async function confirmDelete() {
         showConfirmWindow.value = false
         pendingDelete.value = null
     } catch (e) {
-        alert(e.message || '删除失败')
+        showMessage(e.message || '删除失败', 'error')
     }
 }
 
-// Creator Center Methods
 async function loadCreatorData() {
     try {
         const [songs, albums] = await Promise.all([getMySongs(), getMyAlbums()])
@@ -595,9 +642,17 @@ watch(currentContent, (newVal) => {
     }
 })
 
+// 监听修改密码弹窗状态，关闭时清空输入框
+watch(isChangingPassword, (val) => {
+    if (!val) {
+        oldPassword.value = ''
+        newPassword.value = ''
+    }
+})
+
 async function handleCreateAlbum() {
     if (!createAlbumForm.value.name || !createAlbumForm.value.release_time) {
-        alert('请填写完整信息')
+        showMessage('请填写完整信息', 'warning')
         return
     }
 
@@ -618,7 +673,7 @@ async function handleCreateAlbum() {
     }
 
     if (!artistId.value) {
-        alert('歌手信息校验失败。请确认您已登录且身份为歌手。若刚升级身份，请刷新页面重试。')
+        showMessage('歌手信息校验失败。请确认您已登录且身份为歌手。若刚升级身份，请刷新页面重试。', 'error')
         return
     }
 
@@ -628,12 +683,12 @@ async function handleCreateAlbum() {
             release_time: createAlbumForm.value.release_time,
             singer_id: artistId.value 
         })
-        alert('创建专辑成功')
+        showMessage('创建专辑成功', 'success')
         showCreateAlbumModal.value = false
         createAlbumForm.value.name = ''
         loadCreatorData()
     } catch (e) {
-        alert(e.message || '创建专辑失败')
+        showMessage(e.message || '创建专辑失败', 'error')
     }
 }
 
@@ -660,11 +715,11 @@ function openAddToAlbum(song) {
 async function handleAddToAlbum() {
     try {
         await updateSong(selectedSongId.value, { album_id: selectedAlbumId.value || null })
-        alert('更新成功')
+        showMessage('更新成功', 'success')
         showAddToAlbumModal.value = false
         loadCreatorData()
     } catch (e) {
-        alert(e.message || '更新失败')
+        showMessage(e.message || '更新失败', 'error')
     }
 }
 
@@ -698,7 +753,7 @@ async function addSongToAlbum(song) {
             target.album_title = currentManageAlbum.value.album_name
         }
     } catch (e) {
-        alert(e.message || '添加失败')
+        showMessage(e.message || '添加失败', 'error')
     }
 }
 
@@ -712,7 +767,7 @@ async function removeSongFromAlbum(song) {
             target.album_title = null
         }
     } catch (e) {
-        alert(e.message || '移除失败')
+        showMessage(e.message || '移除失败', 'error')
     }
 }
 </script>

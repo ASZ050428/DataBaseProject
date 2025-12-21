@@ -81,28 +81,45 @@ const currentTab = ref('home') // 默认显示首页
 const currentSongUrl = ref('')
 const currentArtistId = ref(null)
 const currentAlbumId = ref(null)
+const previousTab = ref(null) // 记录上一个页面
 
 function playSong(url) {
   currentSongUrl.value = url
 }
 
 function selectArtist(id) {
+  if (currentTab.value !== 'artist_detail') {
+    previousTab.value = currentTab.value
+  }
   currentArtistId.value = id
   currentTab.value = 'artist_detail'
 }
 
 function selectAlbum(id) {
+  if (currentTab.value !== 'album_detail') {
+    previousTab.value = currentTab.value
+  }
   currentAlbumId.value = id
   currentTab.value = 'album_detail'
 }
 
 function backToArtistList() {
-  currentTab.value = 'artist'
+  if (previousTab.value) {
+    currentTab.value = previousTab.value
+    previousTab.value = null
+  } else {
+    currentTab.value = 'artist'
+  }
   currentArtistId.value = null
 }
 
 function backToAlbumList() {
-  currentTab.value = 'album'
+  if (previousTab.value) {
+    currentTab.value = previousTab.value
+    previousTab.value = null
+  } else {
+    currentTab.value = 'album'
+  }
   currentAlbumId.value = null
 }
 

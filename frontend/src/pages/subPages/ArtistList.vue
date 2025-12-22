@@ -40,6 +40,7 @@ onMounted(async () => {
 <style scoped>
 .artist-list-page {
     padding: 20px;
+    background: #fff;
 }
 
 .artist-grid {

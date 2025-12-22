@@ -34,7 +34,9 @@
                         <div class="fav-title">{{ song.title }}</div>
                     </div>
                     <div class="actions" style="display: flex; gap: 10px; align-items: center;">
-                        <button @click="$emit('play', song.audio_url)" style="padding: 4px 8px; font-size: 12px; cursor: pointer;">▶ 播放</button>
+                        <button class="action-btn play-btn" @click="$emit('play', song.audio_url)" title="播放">
+                            ▶ 播放
+                        </button>
                         <button class="remove-btn" @click="removeSongFromList(song.id)">💔</button>
                     </div>
                 </li>
@@ -231,6 +233,29 @@ async function confirmDelete() {
     font-weight: bold;
     font-size: 16px;
     color: #333;
+}
+
+.action-btn {
+    padding: 6px 16px;
+    border: none;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.play-btn {
+    background-color: #ebf2ff;
+    color: #2563eb;
+}
+
+.play-btn:hover {
+    background-color: #2563eb;
+    color: white;
 }
 
 .remove-btn {

@@ -150,6 +150,7 @@ watch(() => props.artistId, loadData)
 
 <style scoped>
 .artist-detail-page {
+    background: #fff;
     padding: 20px;
 }
 

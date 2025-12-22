@@ -2,29 +2,32 @@
     <div class="fav-group">
         <div class="group-header">
             <h3>创作者中心</h3>
-            <div class="creator-actions" style="display: flex; gap: 10px;">
+            <div class="creator-actions">
                 <button class="add-list" @click="showUploadModal = true">发布歌曲</button>
                 <button class="add-list" @click="showCreateAlbumModal = true">发布专辑</button>
             </div>
         </div>
-        
-        <div class="sub-nav" style="margin-bottom: 20px; display: flex; gap: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
-            <span @click="creatorContent = 'publishedSongs'" style="cursor: pointer; padding: 5px 10px;" :style="creatorContent === 'publishedSongs' ? 'font-weight: bold; color: #4caf50; border-bottom: 2px solid #4caf50;' : ''">已发布歌曲</span>
-            <span @click="creatorContent = 'publishedAlbums'" style="cursor: pointer; padding: 5px 10px;" :style="creatorContent === 'publishedAlbums' ? 'font-weight: bold; color: #4caf50; border-bottom: 2px solid #4caf50;' : ''">已发布专辑</span>
-            <span @click="creatorContent = 'artistProfile'" style="cursor: pointer; padding: 5px 10px;" :style="creatorContent === 'artistProfile' ? 'font-weight: bold; color: #4caf50; border-bottom: 2px solid #4caf50;' : ''">歌手信息</span>
+
+        <div class="sub-nav">
+            <span class="nav-item" :class="{ active: creatorContent === 'publishedSongs' }"
+                @click="creatorContent = 'publishedSongs'">已发布歌曲</span>
+            <span class="nav-item" :class="{ active: creatorContent === 'publishedAlbums' }"
+                @click="creatorContent = 'publishedAlbums'">已发布专辑</span>
+            <span class="nav-item" :class="{ active: creatorContent === 'artistProfile' }"
+                @click="creatorContent = 'artistProfile'">歌手信息</span>
         </div>
 
         <div v-if="creatorContent === 'publishedSongs'">
-                <div v-if="mySongs.length === 0" class="empty-tip">暂无发布歌曲</div>
-                <ul v-else class="fav-list">
+            <div v-if="mySongs.length === 0" class="empty-tip">暂无发布歌曲</div>
+            <ul v-else class="fav-list">
                 <li v-for="song in mySongs" :key="song.song_id" class="fav-item">
                     <div class="fav-info">
                         <div class="fav-title">{{ song.title }}</div>
-                        <div class="fav-sub" style="font-size: 12px; color: #888;">{{ song.album_title ? `专辑: ${song.album_title}` : '未归属专辑' }}</div>
+                        <div class="fav-sub">{{ song.album_title ? `专辑: ${song.album_title}` : '未归属专辑' }}</div>
                     </div>
-                    <div class="actions" style="display: flex; gap: 10px; align-items: center;">
-                        <button @click="emit('play', song.audio_url)" style="padding: 4px 8px; font-size: 12px; cursor: pointer;">▶ 播放</button>
-                        <button @click="openAddToAlbum(song)" style="padding: 4px 8px; font-size: 12px; cursor: pointer;">管理专辑</button>
+                    <div class="item-actions">
+                        <button @click="emit('play', song.audio_url)" class="small-btn">▶ 播放</button>
+                        <button @click="openAddToAlbum(song)" class="small-btn">管理专辑</button>
                         <button class="remove-btn" @click="handleDeleteSong(song.song_id)">🗑️</button>
                     </div>
                 </li>
@@ -35,19 +38,19 @@
             <div v-if="myAlbums.length === 0" class="empty-tip">暂无发布专辑</div>
             <ul v-else class="fav-list">
                 <li v-for="album in myAlbums" :key="album.album_id" class="fav-item">
-                    <div class="fav-info" @click="emit('select-album', album.album_id)" style="cursor: pointer" title="点击查看专辑详情">
+                    <div class="fav-info clickable" @click="emit('select-album', album.album_id)" title="点击查看专辑详情">
                         <div class="fav-title">{{ album.album_name }}</div>
-                        <div class="fav-sub" style="font-size: 12px; color: #888;">发布于: {{ album.release_time }}</div>
+                        <div class="fav-sub">发布于: {{ album.release_time }}</div>
                     </div>
-                    <div class="actions" style="display: flex; gap: 10px; align-items: center;">
-                        <button @click="openManageAlbumContent(album)" style="padding: 4px 8px; font-size: 12px; cursor: pointer;">管理内容</button>
+                    <div class="item-actions">
+                        <button @click="openManageAlbumContent(album)" class="small-btn">管理内容</button>
                         <button class="remove-btn" @click="handleDeleteAlbum(album.album_id)">🗑️</button>
                     </div>
                 </li>
             </ul>
         </div>
 
-        <div v-if="creatorContent === 'artistProfile'" class="info-section" style="margin: 0;">
+        <div v-if="creatorContent === 'artistProfile'" class="info-section">
             <div class="info-item">
                 <span class="label">歌手名称</span>
                 <input type="text" v-model="artistProfile.name" placeholder="请输入歌手名称" />
@@ -56,9 +59,9 @@
                 <span class="label">地区</span>
                 <input type="text" v-model="artistProfile.region" placeholder="请输入地区" />
             </div>
-            <div class="info-item" style="align-items: flex-start;">
-                <span class="label" style="margin-top: 8px;">简介</span>
-                <textarea v-model="artistProfile.bio" placeholder="请输入简介" style="flex: 1; padding: 8px 12px; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 16px; outline: none; min-height: 100px; resize: vertical; font-family: inherit;"></textarea>
+            <div class="info-item align-start">
+                <span class="label top-align">简介</span>
+                <textarea v-model="artistProfile.bio" placeholder="请输入简介" class="bio-textarea"></textarea>
             </div>
             <div class="info-item">
                 <button @click="saveArtistProfile">保存修改</button>
@@ -85,11 +88,11 @@
                     <label>发布日期</label>
                     <input type="date" v-model="uploadForm.release_date" class="modal-input" />
                 </div>
-                    <div class="form-group">
+                <div class="form-group">
                     <label>专辑ID (可选)</label>
                     <input v-model="uploadForm.album_id" placeholder="请输入专辑ID" class="modal-input" />
                 </div>
-                    <div class="form-group">
+                <div class="form-group">
                     <label>封面URL (可选)</label>
                     <input v-model="uploadForm.cover_url" placeholder="请输入封面图片URL" class="modal-input" />
                 </div>
@@ -126,7 +129,7 @@
                 <p>将歌曲添加到专辑 (或选择空移出专辑)</p>
                 <div class="form-group">
                     <label>选择专辑</label>
-                    <select v-model="selectedAlbumId" class="modal-input" style="width: 100%; padding: 8px;">
+                    <select v-model="selectedAlbumId" class="modal-input full-width-select">
                         <option value="">(移出专辑)</option>
                         <option v-for="album in myAlbums" :key="album.album_id" :value="album.album_id">
                             {{ album.album_name }}
@@ -141,18 +144,14 @@
         </div>
 
         <!-- 确认删除弹窗 -->
-        <ConfirmModal 
-            v-if="showConfirmWindow"
-            :message="pendingDelete?.msg"
-            @confirm="confirmDelete"
-            @cancel="showConfirmWindow = false"
-        />
+        <ConfirmModal v-if="showConfirmWindow" :message="pendingDelete?.msg" @confirm="confirmDelete"
+            @cancel="showConfirmWindow = false" />
 
         <!-- 管理专辑内容弹窗 -->
         <div v-if="showManageAlbumContentModal" class="modal-overlay" @click.self="showManageAlbumContentModal = false">
             <div class="modal-content manage-album-modal">
                 <h3>管理专辑内容: {{ currentManageAlbum?.album_name }}</h3>
-                
+
                 <div class="manage-section">
                     <h4>专辑内歌曲</h4>
                     <div v-if="currentAlbumSongs.length === 0" class="empty-tip-small">暂无歌曲</div>
@@ -307,7 +306,7 @@ async function handleUploadSong() {
         showMessage('请填写完整信息 (标题, 文件, 时长, 发布日期)', 'warning')
         return
     }
-    
+
     const formData = new FormData()
     formData.append('title', uploadForm.value.title)
     if (uploadForm.value.album_id) formData.append('album_id', uploadForm.value.album_id)
@@ -315,7 +314,7 @@ async function handleUploadSong() {
     formData.append('release_date', uploadForm.value.release_date)
     formData.append('audio_file', uploadForm.value.file)
     if (uploadForm.value.cover_url) formData.append('cover_url', uploadForm.value.cover_url)
-    
+
     try {
         await uploadSong(formData)
         showMessage('上传成功！', 'success')
@@ -350,7 +349,7 @@ async function handleCreateAlbum() {
         await createAlbum({
             album_name: createAlbumForm.value.name,
             release_time: createAlbumForm.value.release_time,
-            singer_id: artistId.value 
+            singer_id: artistId.value
         })
         showMessage('创建专辑成功', 'success')
         showCreateAlbumModal.value = false
@@ -368,17 +367,17 @@ function handleDeleteSong(id) {
 }
 
 function handleDeleteAlbum(id) {
-    pendingDelete.value = { 
-        type: 'myAlbum', 
-        id, 
-        msg: '确认删除此专辑？(专辑内的歌曲将保留但移出专辑)' 
+    pendingDelete.value = {
+        type: 'myAlbum',
+        id,
+        msg: '确认删除此专辑？(专辑内的歌曲将保留但移出专辑)'
     }
     showConfirmWindow.value = true
 }
 
 async function confirmDelete() {
     if (!pendingDelete.value) return
-    
+
     const { type, id } = pendingDelete.value
     try {
         if (type === 'myAlbum') {
@@ -471,6 +470,11 @@ async function removeSongFromAlbum(song) {
     padding-bottom: 10px;
 }
 
+.creator-actions {
+    display: flex;
+    gap: 10px;
+}
+
 .add-list {
     padding: 6px 14px;
     background-color: #4caf50;
@@ -484,6 +488,27 @@ async function removeSongFromAlbum(song) {
 
 .add-list:hover {
     background-color: #45a049;
+}
+
+.sub-nav {
+    margin-bottom: 20px;
+    display: flex;
+    gap: 20px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+.nav-item {
+    cursor: pointer;
+    padding: 5px 10px;
+    color: #666;
+    border-bottom: 2px solid transparent;
+}
+
+.nav-item.active {
+    font-weight: bold;
+    color: #4caf50;
+    border-bottom: 2px solid #4caf50;
 }
 
 .fav-list {
@@ -515,10 +540,45 @@ async function removeSongFromAlbum(song) {
     gap: 4px;
 }
 
+.clickable {
+    cursor: pointer;
+}
+
 .fav-title {
     font-weight: bold;
     font-size: 16px;
     color: #333;
+}
+
+.fav-sub {
+    font-size: 12px;
+    color: #888;
+}
+
+.item-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.small-btn {
+    padding: 6px 16px;
+    border: none;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background-color: #ebf2ff;
+    color: #2563eb;
+}
+
+.small-btn:hover {
+    background-color: #2563eb;
+    color: white;
 }
 
 .remove-btn {
@@ -542,9 +602,8 @@ async function removeSongFromAlbum(song) {
 }
 
 .info-section {
-    margin-top: 30px;
+    margin: 0;
     text-align: left;
-    margin-left: 30px;
 }
 
 .info-item {
@@ -555,10 +614,18 @@ async function removeSongFromAlbum(song) {
     margin-top: 15px;
 }
 
+.info-item.align-start {
+    align-items: flex-start;
+}
+
 .label {
     font-weight: bold;
     color: #333;
     min-width: 60px;
+}
+
+.label.top-align {
+    margin-top: 8px;
 }
 
 .info-item input {
@@ -573,6 +640,18 @@ async function removeSongFromAlbum(song) {
 
 .info-item input:focus {
     border-color: #2563eb;
+}
+
+.bio-textarea {
+    flex: 1;
+    padding: 8px 12px;
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+    font-size: 16px;
+    outline: none;
+    min-height: 100px;
+    resize: vertical;
+    font-family: inherit;
 }
 
 .info-item button {
@@ -633,6 +712,11 @@ async function removeSongFromAlbum(song) {
 
 .modal-input:focus {
     border-color: #2563eb;
+}
+
+.full-width-select {
+    width: 100%;
+    padding: 8px;
 }
 
 .modal-actions {

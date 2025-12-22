@@ -39,6 +39,7 @@ onMounted(async () => {
 
 <style scoped>
 .album-list-page {
+    background: #fff;
     padding: 20px;
 }
 

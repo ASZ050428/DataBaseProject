@@ -11,6 +11,7 @@
                     <p class="release-time">发行时间: {{ album.release_time }}</p>
                     <!-- 如果有歌手信息可以在这里显示，目前API只返回了 singer_id -->
                 </div>
+                <button class="action-btn btn-collect" @click.stop="handleCollectAlbum(album.album_id)">❤ 收藏</button>
             </li>
         </ul>
     </div>
@@ -19,12 +20,23 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { getAllAlbums } from '../../api/search'
+import { addFavoriteAlbum } from '../../api/collection'
+import { showMessage } from '../../utils/message'
 
 const albums = ref([])
 const loading = ref(true)
 const error = ref(null)
 
 const emit = defineEmits(['select-album'])
+
+async function handleCollectAlbum(albumId) {
+    try {
+        await addFavoriteAlbum(albumId)
+        showMessage('专辑收藏成功！', 'success')
+    } catch (e) {
+        showMessage(e.message || '收藏失败', 'error')
+    }
+}
 
 onMounted(async () => {
     try {
@@ -57,6 +69,9 @@ onMounted(async () => {
     background: #fff;
     transition: transform 0.2s;
     cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
 }
 
 .album-card:hover {
@@ -64,14 +79,46 @@ onMounted(async () => {
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
+.album-info {
+    margin-bottom: 15px;
+}
+
 .album-info h3 {
     margin: 0 0 10px 0;
     color: #333;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .release-time {
     color: #666;
     font-size: 0.9em;
+}
+
+.action-btn {
+    padding: 6px 16px;
+    border: none;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    align-self: flex-start;
+}
+
+.btn-collect {
+    background-color: #fff1f2;
+    color: #e11d48;
+}
+
+.btn-collect:hover {
+    background-color: #e11d48;
+    color: white;
 }
 
 .loading, .error, .empty {

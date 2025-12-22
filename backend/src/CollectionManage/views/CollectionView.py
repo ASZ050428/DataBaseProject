@@ -108,16 +108,19 @@ class ArtistSongPublishViewSet(BaseReadOnlyViewSet):
 class MyCollectionListsView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     def get(self, request):
-        with connection.cursor() as cursor:
-            cursor.execute(
-                "SELECT cl.LIST_ID, cl.LIST_NAME FROM user_favourite_songs_list cl "
-                "JOIN user_list_relation ulr ON cl.LIST_ID=ulr.LIST_ID "
-                "WHERE ulr.USER_ID=%s ORDER BY cl.CREATE_TIME DESC",
-                [request.user.id],
-            )
-            rows = cursor.fetchall()
-        data = [{'id': r[0], 'title': r[1]} for r in rows]
-        return api_response(data=data)
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT cl.LIST_ID, cl.LIST_NAME FROM user_favourite_songs_list cl "
+                    "JOIN user_list_relation ulr ON cl.LIST_ID=ulr.LIST_ID "
+                    "WHERE ulr.USER_ID=%s ORDER BY cl.CREATE_TIME DESC",
+                    [request.user.id],
+                )
+                rows = cursor.fetchall()
+            data = [{'id': r[0], 'title': r[1]} for r in rows]
+            return api_response(data=data)
+        except Exception as e:
+            return api_response(code=500, message=f'数据库连接失败: {str(e)}', data=None, status_code=500)
     def post(self, request):
         name = request.data.get('name') or request.data.get('list_name')
         if not name:

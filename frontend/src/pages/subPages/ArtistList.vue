@@ -11,6 +11,7 @@
                     <p class="region">地区: {{ artist.region || '未知' }}</p>
                     <p class="bio">{{ artist.bio || '暂无简介' }}</p>
                 </div>
+                <button class="action-btn btn-follow" @click.stop="handleFollowArtist(artist.artist_id || artist.id)">＋ 关注</button>
             </li>
         </ul>
     </div>
@@ -19,12 +20,23 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { getAllArtists } from '../../api/search'
+import { addFavoriteArtist } from '../../api/collection'
+import { showMessage } from '../../utils/message'
 
 const artists = ref([])
 const loading = ref(true)
 const error = ref(null)
 
 const emit = defineEmits(['select-artist'])
+
+async function handleFollowArtist(artistId) {
+    try {
+        await addFavoriteArtist(artistId)
+        showMessage('关注成功', 'success')
+    } catch (e) {
+        showMessage(e.message || '关注失败', 'error')
+    }
+}
 
 onMounted(async () => {
     try {
@@ -57,11 +69,18 @@ onMounted(async () => {
     background: #fff;
     transition: transform 0.2s;
     cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
 }
 
 .artist-card:hover {
     transform: translateY(-5px);
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.artist-info {
+    margin-bottom: 15px;
 }
 
 .artist-info h3 {
@@ -85,6 +104,31 @@ onMounted(async () => {
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
+}
+
+.action-btn {
+    padding: 6px 16px;
+    border: none;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    align-self: flex-start;
+}
+
+.btn-follow {
+    background-color: #f0fdf4;
+    color: #16a34a;
+}
+
+.btn-follow:hover {
+    background-color: #16a34a;
+    color: white;
 }
 
 .loading, .error, .empty {

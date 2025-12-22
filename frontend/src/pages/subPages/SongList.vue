@@ -50,11 +50,18 @@ import { ref, onMounted } from 'vue'
 import { getAllSongs } from '../../api/search'
 import { getCollectionsList, addSongToCollection } from '../../api/collection'
 import { showMessage } from '../../utils/message'
+import { getCollectionsList, addSongToCollection } from '../../api/collection'
+import { showMessage } from '../../utils/message'
 
 const emit = defineEmits(['play'])
 const songs = ref([])
 const loading = ref(true)
 const error = ref(null)
+
+// 收藏相关
+const showModal = ref(false)
+const myCollections = ref([])
+const currentSongId = ref(null)
 
 function formatDuration(seconds) {
     if (!seconds) return '0:00'
@@ -282,11 +289,7 @@ onMounted(async () => {
 .error,
 .empty {
     text-align: center;
-    padding: 40px;
-    color: #666;
-}
-
-.error {
-    color: #ff4d4f;
+    color: #999;
+    padding: 20px 0;
 }
 </style>

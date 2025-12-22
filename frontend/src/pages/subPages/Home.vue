@@ -39,7 +39,7 @@
                 <h3>专辑</h3>
                 <div v-if="albums.length === 0" class="empty-tip">未找到相关专辑</div>
                 <ul v-else class="result-list">
-                    <li v-for="album in albums" :key="album.album_id" class="result-item">
+                    <li v-for="album in albums" :key="album.album_id" class="result-item" @click="$emit('select-album', album.album_id)">
                         <div class="item-info">
                             <div class="item-title">{{ album.album_name }}</div>
                             <div class="item-sub">发行时间: {{ formatDate(album.release_time) }}</div>
@@ -94,7 +94,7 @@ import {
     addFavoriteArtist 
 } from '../../api/collection'
 
-const emit = defineEmits(['play'])
+const emit = defineEmits(['play', 'select-album'])
 
 const query = ref('')
 const songs = ref([])

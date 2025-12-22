@@ -18,7 +18,7 @@
     <div class="content">
       <!-- 根据 currentTab 的值显示不同的内容 -->
       <div v-if="currentTab === 'home'">
-        <HomePage @play="playSong" />
+        <HomePage @play="playSong" @select-album="selectAlbum" />
       </div>
 
       <div v-else-if="currentTab === 'artist'">

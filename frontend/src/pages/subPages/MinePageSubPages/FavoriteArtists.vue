@@ -6,8 +6,8 @@
         <div v-if="loading" class="loading-tip">加载中...</div>
         <div v-else-if="favoriteArtists.length === 0" class="empty-tip">暂无关注歌手</div>
         <ul v-else class="fav-list">
-            <li v-for="artist in favoriteArtists" :key="artist.id" class="fav-item">
-                <div class="fav-info" @click="$emit('select-artist', artist.id)" style="cursor: pointer" title="点击查看歌手详情">
+            <li v-for="artist in favoriteArtists" :key="artist.id" class="fav-item" @click="emit('select-artist', artist.id)">
+                <div class="fav-info" style="cursor: pointer" title="点击查看歌手详情">
                     <div class="fav-title">{{ artist.title }}</div>
                 </div>
                 <button class="remove-btn" @click="removeArtist(artist.id)">💔</button>
@@ -29,7 +29,7 @@ import { showMessage } from '../../../utils/message'
 import ConfirmModal from '../../../components/ConfirmModal.vue'
 import { getFavoriteArtists, removeFavoriteArtist } from '../../../api/collection'
 
-defineEmits(['select-artist'])
+const emit = defineEmits(['select-artist'])
 
 const favoriteArtists = ref([])
 const loading = ref(false)

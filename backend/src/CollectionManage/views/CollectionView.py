@@ -196,11 +196,25 @@ class MyCollectionListSongsView(APIView):
             return api_response(code=2, message='未找到列表', data=None)
         with connection.cursor() as cursor:
             cursor.execute(
-                "SELECT s.song_id, s.title, s.audio_url FROM user_song_list_relation i JOIN song s ON i.SONG_ID=s.song_id WHERE i.LIST_ID=%s ORDER BY i.ADD_TIME DESC",
+                "SELECT s.song_id, s.title, s.audio_url, s.duration, s.play_count, s.release_date "
+                "FROM user_song_list_relation i "
+                "JOIN song s ON i.SONG_ID=s.song_id "
+                "WHERE i.LIST_ID=%s "
+                "ORDER BY i.ADD_TIME DESC",
                 [list_id],
             )
             rows = cursor.fetchall()
-        data = [{'id': r[0], 'title': r[1], 'audio_url': r[2]} for r in rows]
+        data = [
+            {
+                'song_id': r[0], 
+                'title': r[1], 
+                'audio_url': r[2],
+                'duration': r[3],
+                'play_count': r[4],
+                'release_date': r[5]
+            } 
+            for r in rows
+        ]
         return api_response(data=data)
     def post(self, request, list_id: int):
         with connection.cursor() as cursor:

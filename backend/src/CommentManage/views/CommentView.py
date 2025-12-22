@@ -37,18 +37,20 @@ class MyCommentView(APIView):
     def post(self, request):
         song_id = request.data.get('song_id')
         content = request.data.get('content')
+        user_id = request.user.id
+
         if not song_id or not content:
             return api_response(code=1, message='缺少参数', data=None)
         with connection.cursor() as cursor:
             cursor.execute(
-                "INSERT INTO comment (user_id, song_id, content, create_time, update_time, is_deleted) VALUES (%s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 0)",
-                [request.user.id, song_id, content],
+                "INSERT INTO comment (user_id, song_id, content, create_time) VALUES (%s, %s, %s, CURRENT_TIMESTAMP)",
+                [user_id, song_id, content],
             )
             new_id = cursor.lastrowid
             if not new_id:
                 cursor.execute(
                     "SELECT comment_id FROM comment WHERE user_id=%s AND song_id=%s ORDER BY comment_id DESC LIMIT 1",
-                    [request.user.id, song_id],
+                    [user_id, song_id],
                 )
                 row = cursor.fetchone()
                 new_id = row[0] if row else None
@@ -57,14 +59,22 @@ class MyCommentView(APIView):
 
 class SongCommentsView(APIView):
     permission_classes = []
-    def get(self, request, song_id: int):
+    def get(self, request ,song_id):
         with connection.cursor() as cursor:
+            # 使用 JOIN 直接查询 username
             cursor.execute(
-                "SELECT comment_id, user_id, content, create_time FROM comment WHERE song_id=%s ORDER BY create_time DESC",
+                """
+                SELECT c.comment_id, u.username, c.content, c.create_time 
+                FROM comment c
+                JOIN auth_user u ON c.user_id = u.id
+                WHERE c.song_id=%s 
+                ORDER BY c.create_time DESC
+                """,
                 [song_id],
             )
             rows = cursor.fetchall()
-        data = [{ 'id': r[0], 'user_id': r[1], 'content': r[2], 'create_time': r[3] } for r in rows]
+            
+        data = [{ 'id': r[0], 'username': r[1], 'content': r[2], 'create_time': r[3] } for r in rows]
         return api_response(data=data)
 
 

@@ -3,17 +3,10 @@ from django.contrib.auth.models import User
 
 class Comment(models.Model):
     comment_id = models.AutoField(primary_key=True, verbose_name="评论ID")
-    user = models.ForeignKey(
-        User, 
-        on_delete=models.CASCADE, 
-        related_name="comments",
-        verbose_name="评论用户"
-    )
-    song_id = models.IntegerField(verbose_name="歌曲ID")  # 可根据实际情况改为ForeignKey关联Song模型
+    user_id = models.IntegerField(verbose_name="用户ID", default=1)
+    song_id = models.IntegerField(verbose_name="歌曲ID") # 歌曲删除时需删除评论
     content = models.TextField(verbose_name="评论内容")
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
-    update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
-    is_deleted = models.BooleanField(default=False, verbose_name="是否删除")
 
     class Meta:
         db_table = "comment"

@@ -29,6 +29,7 @@
                         <div class="item-actions">
                             <button class="action-btn btn-play" @click="emit('play', song.audio_url)">▶ 播放</button>
                             <button class="action-btn btn-collect" @click="openCollectModal(song.song_id)">❤ 收藏</button>
+                            <button class="action-btn btn-comment" @click="openCommentModal(song.song_id)">💬 评论</button>
                         </div>
                     </li>
                 </ul>
@@ -80,6 +81,33 @@
                 <button class="close-btn" @click="showModal = false">取消</button>
             </div>
         </div>
+
+        <!-- 评论弹窗 -->
+        <div v-if="showCommentModal" class="modal-overlay" @click="showCommentModal = false">
+            <div class="modal-content comment-modal" @click.stop>
+                <h3>歌曲评论</h3>
+                <div class="comment-list-container">
+                    <div v-if="commentsLoading" class="loading-tip">加载中...</div>
+                    <div v-else-if="comments.length === 0" class="empty-tip">暂无评论，快来抢沙发吧~</div>
+                    <ul v-else class="comment-list">
+                        <li v-for="comment in comments" :key="comment.id" class="comment-item">
+                            <div class="comment-header">
+                                <span class="comment-user">{{ comment.username }}</span>
+                                <span class="comment-time">{{ formatDate(comment.create_time) }}</span>
+                            </div>
+                            <div class="comment-content">{{ comment.content }}</div>
+                        </li>
+                    </ul>
+                </div>
+                <div class="comment-input-area">
+                    <textarea v-model="commentContent" placeholder="写下你的评论..." rows="3"></textarea>
+                    <div class="modal-footer">
+                        <button class="close-modal-btn" @click="showCommentModal = false">关闭</button>
+                        <button class="submit-btn" @click="submitComment" :disabled="!commentContent.trim()">发表评论</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
@@ -93,6 +121,7 @@ import {
     addFavoriteAlbum, 
     addFavoriteArtist 
 } from '../../api/collection'
+import { getSongComments, postComment } from '../../api/comment'
 
 const emit = defineEmits(['play', 'select-album'])
 
@@ -101,6 +130,13 @@ const songs = ref([])
 const albums = ref([])
 const artists = ref([])
 const hasSearched = ref(false)
+
+// 评论相关状态
+const showCommentModal = ref(false)
+const comments = ref([])
+const commentContent = ref('')
+const currentSongId = ref(null)
+const commentsLoading = ref(false)
 
 // 收藏相关状态
 const showModal = ref(false)
@@ -144,6 +180,38 @@ async function confirmCollect(listId) {
         showModal.value = false
     } catch (e) {
         showMessage(e.message || '收藏失败', 'error')
+    }
+}
+
+async function openCommentModal(songId) {
+    currentSongId.value = songId
+    showCommentModal.value = true
+    commentContent.value = ''
+    await loadComments(songId)
+}
+
+async function loadComments(songId) {
+    commentsLoading.value = true
+    try {
+        const res = await getSongComments(songId)
+        comments.value = Array.isArray(res) ? res : []
+    } catch (e) {
+        showMessage(e.message || '加载评论失败', 'error')
+    } finally {
+        commentsLoading.value = false
+    }
+}
+
+async function submitComment() {
+    if (!commentContent.value.trim()) return
+    
+    try {
+        await postComment(currentSongId.value, commentContent.value)
+        showMessage('评论成功！', 'success')
+        commentContent.value = ''
+        await loadComments(currentSongId.value)
+    } catch (e) {
+        showMessage(e.message || '评论失败', 'error')
     }
 }
 
@@ -323,7 +391,6 @@ h1 {
     padding: 0;
     margin: 0;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 15px;
 }
 
@@ -413,9 +480,207 @@ h1 {
     color: white;
 }
 
+.btn-comment {
+    background-color: #f3f4f6;
+    color: #4b5563;
+}
+.btn-comment:hover {
+    background-color: #4b5563;
+    color: white;
+}
+
 .empty-tip {
     color: #999;
     font-style: italic;
+    margin-left: 25px;
     padding: 10px 0;
+}
+
+.loading-tip {
+    text-align: center;
+    padding: 40px 0;
+    color: #6b7280;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.loading-tip::before {
+    content: "";
+    width: 16px;
+    height: 16px;
+    border: 2px solid #e5e7eb;
+    border-top-color: #3b82f6;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* 评论模态框样式 */
+.comment-modal {
+    width: 550px;
+    max-width: 90vw;
+    display: flex;
+    flex-direction: column;
+    max-height: 85vh;
+    border-radius: 16px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    padding: 0;
+    overflow: hidden;
+    background: #fff;
+}
+
+.comment-modal h3 {
+    margin: 0;
+    padding: 20px 24px;
+    font-size: 18px;
+    font-weight: 600;
+    color: #1f2937;
+    border-bottom: 1px solid #f3f4f6;
+    background: #fff;
+    text-align: left;
+}
+
+.comment-list-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0;
+    background: #fff;
+    margin: 0;
+    border: none;
+}
+
+/* 滚动条美化 */
+.comment-list-container::-webkit-scrollbar {
+    width: 6px;
+}
+.comment-list-container::-webkit-scrollbar-thumb {
+    background-color: #e5e7eb;
+    border-radius: 3px;
+}
+
+.comment-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.comment-item {
+    padding: 20px 24px;
+    border-bottom: 1px solid #f3f4f6;
+    transition: background-color 0.2s;
+}
+
+.comment-item:last-child {
+    border-bottom: none;
+}
+
+.comment-item:hover {
+    background-color: #f9fafb;
+}
+
+.comment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.comment-user {
+    font-weight: 600;
+    font-size: 14px;
+    color: #374151;
+}
+
+.comment-time {
+    font-size: 12px;
+    color: #9ca3af;
+}
+
+.comment-content {
+    font-size: 14px;
+    color: #4b5563;
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+
+.comment-input-area {
+    padding: 20px 24px;
+    background: #fff;
+    border-top: 1px solid #f3f4f6;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 0;
+}
+
+.comment-input-area textarea {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    resize: none;
+    font-family: inherit;
+    font-size: 14px;
+    background-color: #f9fafb;
+    transition: all 0.2s;
+    outline: none;
+    box-sizing: border-box;
+}
+
+.comment-input-area textarea:focus {
+    background-color: #fff;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    align-items: center;
+}
+
+.submit-btn {
+    padding: 8px 24px;
+    background-color: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    align-self: auto;
+}
+
+.submit-btn:hover {
+    background-color: #2563eb;
+}
+
+.submit-btn:disabled {
+    background-color: #93c5fd;
+    cursor: not-allowed;
+}
+
+.close-modal-btn {
+    padding: 8px 20px;
+    background-color: transparent;
+    color: #6b7280;
+    border: 1px solid #e5e7eb;
+    border-radius: 20px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.close-modal-btn:hover {
+    background-color: #f3f4f6;
+    color: #374151;
 }
 </style>

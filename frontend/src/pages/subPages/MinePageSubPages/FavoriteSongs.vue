@@ -29,17 +29,14 @@
             <div v-if="listLoading" class="loading-tip">加载中...</div>
             <div v-else-if="currentCollectionListSongs.length === 0" class="empty-tip">此歌单暂无歌曲</div>
             <ul v-else class="fav-list">
-                <li v-for="song in currentCollectionListSongs" :key="song.id" class="fav-item">
-                    <div class="fav-info" style="cursor: pointer;" title="点击播放">
-                        <div class="fav-title">{{ song.title }}</div>
-                    </div>
-                    <div class="actions" style="display: flex; gap: 10px; align-items: center;">
-                        <button class="action-btn play-btn" @click="$emit('play', song.audio_url)" title="播放">
-                            ▶ 播放
-                        </button>
-                        <button class="remove-btn" @click="removeSongFromList(song.id)">💔</button>
-                    </div>
-                </li>
+                <SongListItem 
+                    v-for="song in currentCollectionListSongs" 
+                    :key="song.song_id" 
+                    :song="song"
+                    @play="$emit('play', $event)"
+                    @collect="openCollectModal"
+                    @comment="openCommentModal"
+                />
             </ul>
         </div>
 
@@ -62,6 +59,21 @@
             @confirm="confirmDelete" 
             @cancel="showConfirmWindow = false" 
         />
+
+        <!-- 歌曲操作弹窗 -->
+        <SongActionModals 
+            :collect-visible="collectModalVisible"
+            :comment-visible="commentModalVisible"
+            :collections="userCollections"
+            :collections-loading="collectionsLoading"
+            :comments="comments"
+            :comments-loading="commentsLoading"
+            :comment-content="commentContent"
+            @close="closeModals"
+            @add-to-collection="addToCollection"
+            @submit-comment="submitComment"
+            @update:commentContent="commentContent = $event"
+        />
     </div>
 </template>
 
@@ -69,6 +81,9 @@
 import { ref, onMounted } from 'vue'
 import { showMessage } from '../../../utils/message'
 import ConfirmModal from '../../../components/ConfirmModal.vue'
+import SongListItem from '../../../components/SongListItem.vue'
+import SongActionModals from '../../../components/SongActionModals.vue'
+import { useSongOperations } from '../../../composables/useSongOperations'
 import { 
     getCollectionsList, 
     addCollection, 
@@ -92,6 +107,22 @@ const showAddListModal = ref(false)
 const newListName = ref('')
 const showConfirmWindow = ref(false)
 const pendingDelete = ref(null)
+
+// 歌曲操作逻辑
+const {
+    collectModalVisible,
+    commentModalVisible,
+    userCollections,
+    collectionsLoading,
+    comments,
+    commentsLoading,
+    commentContent,
+    openCollectModal,
+    addToCollection,
+    openCommentModal,
+    submitComment,
+    closeModals
+} = useSongOperations()
 
 onMounted(async () => {
     await loadCollections()
@@ -143,10 +174,6 @@ function backToCollections() {
     currentCollectionId.value = null
     currentCollectionListSongs.value = []
     currentCollectionListName.value = ''
-}
-
-function removeSongFromList(songId) {
-    showMessage('移除歌曲功能开发中...', 'info')
 }
 
 function removeList(id) {
@@ -204,6 +231,9 @@ async function confirmDelete() {
     list-style: none;
     padding: 0;
     margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
 .fav-item {

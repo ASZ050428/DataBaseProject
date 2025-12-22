@@ -27,7 +27,6 @@
                     </div>
                     <div class="item-actions">
                         <button @click="emit('play', song.audio_url)" class="small-btn">▶ 播放</button>
-                        <button @click="openAddToAlbum(song)" class="small-btn">管理专辑</button>
                         <button class="remove-btn" @click="handleDeleteSong(song.song_id)">🗑️</button>
                     </div>
                 </li>
@@ -122,27 +121,6 @@
             </div>
         </div>
 
-        <!-- 管理歌曲专辑弹窗 -->
-        <div v-if="showAddToAlbumModal" class="modal-overlay" @click.self="showAddToAlbumModal = false">
-            <div class="modal-content">
-                <h3>管理专辑</h3>
-                <p>将歌曲添加到专辑 (或选择空移出专辑)</p>
-                <div class="form-group">
-                    <label>选择专辑</label>
-                    <select v-model="selectedAlbumId" class="modal-input full-width-select">
-                        <option value="">(移出专辑)</option>
-                        <option v-for="album in myAlbums" :key="album.album_id" :value="album.album_id">
-                            {{ album.album_name }}
-                        </option>
-                    </select>
-                </div>
-                <div class="modal-actions">
-                    <button @click="handleAddToAlbum" class="confirm-btn">确认保存</button>
-                    <button @click="showAddToAlbumModal = false" class="cancel-btn">取消</button>
-                </div>
-            </div>
-        </div>
-
         <!-- 确认删除弹窗 -->
         <ConfirmModal v-if="showConfirmWindow" :message="pendingDelete?.msg" @confirm="confirmDelete"
             @cancel="showConfirmWindow = false" />
@@ -207,7 +185,6 @@ const artistId = ref(null)
 // Modals
 const showUploadModal = ref(false)
 const showCreateAlbumModal = ref(false)
-const showAddToAlbumModal = ref(false)
 const showManageAlbumContentModal = ref(false)
 const showConfirmWindow = ref(false)
 const pendingDelete = ref(null)
@@ -385,29 +362,11 @@ async function confirmDelete() {
         } else if (type === 'mySong') {
             await deleteSong(id)
         }
-        loadCreatorData()
+        await loadCreatorData()
         showConfirmWindow.value = false
         pendingDelete.value = null
     } catch (e) {
         showMessage(e.message || '删除失败', 'error')
-    }
-}
-
-// Add to Album
-function openAddToAlbum(song) {
-    selectedSongId.value = song.song_id
-    selectedAlbumId.value = song.album_id || ''
-    showAddToAlbumModal.value = true
-}
-
-async function handleAddToAlbum() {
-    try {
-        await updateSong(selectedSongId.value, { album_id: selectedAlbumId.value || null })
-        showMessage('更新成功', 'success')
-        showAddToAlbumModal.value = false
-        loadCreatorData()
-    } catch (e) {
-        showMessage(e.message || '更新失败', 'error')
     }
 }
 

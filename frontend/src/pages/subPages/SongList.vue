@@ -50,8 +50,6 @@ import { ref, onMounted } from 'vue'
 import { getAllSongs } from '../../api/search'
 import { getCollectionsList, addSongToCollection } from '../../api/collection'
 import { showMessage } from '../../utils/message'
-import { getCollectionsList, addSongToCollection } from '../../api/collection'
-import { showMessage } from '../../utils/message'
 
 const emit = defineEmits(['play'])
 const songs = ref([])

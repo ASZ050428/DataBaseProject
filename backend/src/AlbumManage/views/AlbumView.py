@@ -5,7 +5,7 @@ from common.views import BaseReadOnlyViewSet
 from utils.response import api_response
 from ArtistManage.models.Artist import Artist
 from django.utils.dateparse import parse_date
-from django.db import connection
+from django.db import connection, transaction, IntegrityError
 
 class AlbumSerializer(serializers.ModelSerializer):
     class Meta:
@@ -171,11 +171,19 @@ class MyAlbumDeleteView(APIView):
             if row[0] != artist_id:
                 return api_response(code=403, message='无权删除此专辑', data=None)
             
-            # 删除专辑前，需要把里面的歌曲 album_id 置空? 还是级联删除?
-            # 通常应该把歌曲移出专辑，而不是删除歌曲
-            cursor.execute("UPDATE song SET album_id=NULL WHERE album_id=%s", [pk])
-            
-            # 删除专辑
-            cursor.execute("DELETE FROM album WHERE album_id=%s", [pk])
+            try:
+                with transaction.atomic():
+                    # 1. 删除关联的收藏记录 (user_favourite_albums)
+                    cursor.execute("DELETE FROM user_favourite_albums WHERE ALBUM_ID=%s", [pk])
+
+                    # 2. 将专辑内的歌曲移出专辑 (置空 album_id)
+                    cursor.execute("UPDATE song SET album_id=NULL WHERE album_id=%s", [pk])
+                    
+                    # 3. 删除专辑
+                    cursor.execute("DELETE FROM album WHERE album_id=%s", [pk])
+            except IntegrityError as e:
+                return api_response(code=500, message=f'数据库错误: {str(e)}', data=None)
+            except Exception as e:
+                return api_response(code=500, message=f'删除失败: {str(e)}', data=None)
             
         return api_response(message='删除成功', data=None)

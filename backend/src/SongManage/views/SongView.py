@@ -11,7 +11,7 @@ from utils.response import api_response
 from ArtistManage.models import Artist
 from AlbumManage.models import Album
 from django.utils.dateparse import parse_date
-from django.db import connection
+from django.db import connection, transaction, IntegrityError
 
 class SongSerializer(serializers.ModelSerializer):
     class Meta:
@@ -271,6 +271,16 @@ class MySongDeleteView(APIView):
             if row[0] != artist_id:
                 return api_response(code=403, message='无权删除此歌曲', data=None)
             
-            cursor.execute("DELETE FROM song WHERE song_id=%s", [pk])
+            try:
+                with transaction.atomic():
+                    # 1. 删除关联的收藏记录 (user_song_list_relation)
+                    cursor.execute("DELETE FROM user_song_list_relation WHERE SONG_ID=%s", [pk])
+                    
+                    # 2. 删除歌曲本身
+                    cursor.execute("DELETE FROM song WHERE song_id=%s", [pk])
+            except IntegrityError as e:
+                return api_response(code=500, message=f'数据库完整性错误: {str(e)}', data=None)
+            except Exception as e:
+                return api_response(code=500, message=f'删除失败: {str(e)}', data=None)
             
         return api_response(message='删除成功', data=None)

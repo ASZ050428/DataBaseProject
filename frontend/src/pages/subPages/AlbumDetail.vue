@@ -1,7 +1,7 @@
 <template>
     <div class="album-detail-page">
-        <button class="back-btn" @click="$emit('back')">← 返回列表</button>
-        
+        <button class="back-btn" @click="$emit('back')">返回列表</button>
+
         <div v-if="loading" class="loading">加载中...</div>
         <div v-else-if="error" class="error">{{ error }}</div>
         <div v-else class="content">
@@ -74,12 +74,18 @@ watch(() => props.albumId, loadData)
 }
 
 .back-btn {
-    margin-bottom: 20px;
-    padding: 8px 16px;
-    background: #f0f0f0;
+    padding: 6px 12px;
+    background-color: #ed3a3a;
     border: none;
-    border-radius: 4px;
+    border-radius: 6px;
     cursor: pointer;
+    font-size: 14px;
+    color: white;
+    transition: all 0.3s;
+}
+
+.back-btn:hover {
+    background-color: #b11a1a;
 }
 
 .header {
@@ -138,7 +144,9 @@ watch(() => props.albumId, loadData)
     justify-content: center;
 }
 
-.loading, .error, .empty {
+.loading,
+.error,
+.empty {
     text-align: center;
     color: #666;
     padding: 20px;

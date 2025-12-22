@@ -1,0 +1,763 @@
+<template>
+    <div class="fav-group">
+        <div class="group-header">
+            <h3>创作者中心</h3>
+            <div class="creator-actions" style="display: flex; gap: 10px;">
+                <button class="add-list" @click="showUploadModal = true">发布歌曲</button>
+                <button class="add-list" @click="showCreateAlbumModal = true">发布专辑</button>
+            </div>
+        </div>
+        
+        <div class="sub-nav" style="margin-bottom: 20px; display: flex; gap: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+            <span @click="creatorContent = 'publishedSongs'" style="cursor: pointer; padding: 5px 10px;" :style="creatorContent === 'publishedSongs' ? 'font-weight: bold; color: #4caf50; border-bottom: 2px solid #4caf50;' : ''">已发布歌曲</span>
+            <span @click="creatorContent = 'publishedAlbums'" style="cursor: pointer; padding: 5px 10px;" :style="creatorContent === 'publishedAlbums' ? 'font-weight: bold; color: #4caf50; border-bottom: 2px solid #4caf50;' : ''">已发布专辑</span>
+            <span @click="creatorContent = 'artistProfile'" style="cursor: pointer; padding: 5px 10px;" :style="creatorContent === 'artistProfile' ? 'font-weight: bold; color: #4caf50; border-bottom: 2px solid #4caf50;' : ''">歌手信息</span>
+        </div>
+
+        <div v-if="creatorContent === 'publishedSongs'">
+                <div v-if="mySongs.length === 0" class="empty-tip">暂无发布歌曲</div>
+                <ul v-else class="fav-list">
+                <li v-for="song in mySongs" :key="song.song_id" class="fav-item">
+                    <div class="fav-info">
+                        <div class="fav-title">{{ song.title }}</div>
+                        <div class="fav-sub" style="font-size: 12px; color: #888;">{{ song.album_title ? `专辑: ${song.album_title}` : '未归属专辑' }}</div>
+                    </div>
+                    <div class="actions" style="display: flex; gap: 10px; align-items: center;">
+                        <button @click="emit('play', song.audio_url)" style="padding: 4px 8px; font-size: 12px; cursor: pointer;">▶ 播放</button>
+                        <button @click="openAddToAlbum(song)" style="padding: 4px 8px; font-size: 12px; cursor: pointer;">管理专辑</button>
+                        <button class="remove-btn" @click="handleDeleteSong(song.song_id)">🗑️</button>
+                    </div>
+                </li>
+            </ul>
+        </div>
+
+        <div v-if="creatorContent === 'publishedAlbums'">
+            <div v-if="myAlbums.length === 0" class="empty-tip">暂无发布专辑</div>
+            <ul v-else class="fav-list">
+                <li v-for="album in myAlbums" :key="album.album_id" class="fav-item">
+                    <div class="fav-info" @click="emit('select-album', album.album_id)" style="cursor: pointer" title="点击查看专辑详情">
+                        <div class="fav-title">{{ album.album_name }}</div>
+                        <div class="fav-sub" style="font-size: 12px; color: #888;">发布于: {{ album.release_time }}</div>
+                    </div>
+                    <div class="actions" style="display: flex; gap: 10px; align-items: center;">
+                        <button @click="openManageAlbumContent(album)" style="padding: 4px 8px; font-size: 12px; cursor: pointer;">管理内容</button>
+                        <button class="remove-btn" @click="handleDeleteAlbum(album.album_id)">🗑️</button>
+                    </div>
+                </li>
+            </ul>
+        </div>
+
+        <div v-if="creatorContent === 'artistProfile'" class="info-section" style="margin: 0;">
+            <div class="info-item">
+                <span class="label">歌手名称</span>
+                <input type="text" v-model="artistProfile.name" placeholder="请输入歌手名称" />
+            </div>
+            <div class="info-item">
+                <span class="label">地区</span>
+                <input type="text" v-model="artistProfile.region" placeholder="请输入地区" />
+            </div>
+            <div class="info-item" style="align-items: flex-start;">
+                <span class="label" style="margin-top: 8px;">简介</span>
+                <textarea v-model="artistProfile.bio" placeholder="请输入简介" style="flex: 1; padding: 8px 12px; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 16px; outline: none; min-height: 100px; resize: vertical; font-family: inherit;"></textarea>
+            </div>
+            <div class="info-item">
+                <button @click="saveArtistProfile">保存修改</button>
+            </div>
+        </div>
+
+        <!-- 上传歌曲弹窗 -->
+        <div v-if="showUploadModal" class="modal-overlay" @click.self="showUploadModal = false">
+            <div class="modal-content upload-modal">
+                <h3>上传歌曲</h3>
+                <div class="form-group">
+                    <label>歌曲标题</label>
+                    <input v-model="uploadForm.title" placeholder="请输入歌曲标题" class="modal-input" />
+                </div>
+                <div class="form-group">
+                    <label>音频文件</label>
+                    <input type="file" accept="audio/*" @change="handleFileChange" class="modal-input" />
+                </div>
+                <div class="form-group">
+                    <label>时长 (秒)</label>
+                    <input type="number" v-model="uploadForm.duration" placeholder="自动获取或手动输入" class="modal-input" />
+                </div>
+                <div class="form-group">
+                    <label>发布日期</label>
+                    <input type="date" v-model="uploadForm.release_date" class="modal-input" />
+                </div>
+                    <div class="form-group">
+                    <label>专辑ID (可选)</label>
+                    <input v-model="uploadForm.album_id" placeholder="请输入专辑ID" class="modal-input" />
+                </div>
+                    <div class="form-group">
+                    <label>封面URL (可选)</label>
+                    <input v-model="uploadForm.cover_url" placeholder="请输入封面图片URL" class="modal-input" />
+                </div>
+                <div class="modal-actions">
+                    <button @click="handleUploadSong" class="confirm-btn">确认上传</button>
+                    <button @click="showUploadModal = false" class="cancel-btn">取消</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 创建专辑弹窗 -->
+        <div v-if="showCreateAlbumModal" class="modal-overlay" @click.self="showCreateAlbumModal = false">
+            <div class="modal-content">
+                <h3>创建专辑</h3>
+                <div class="form-group">
+                    <label>专辑名称</label>
+                    <input v-model="createAlbumForm.name" placeholder="请输入专辑名称" class="modal-input" />
+                </div>
+                <div class="form-group">
+                    <label>发布时间</label>
+                    <input type="date" v-model="createAlbumForm.release_time" class="modal-input" />
+                </div>
+                <div class="modal-actions">
+                    <button @click="handleCreateAlbum" class="confirm-btn">确认创建</button>
+                    <button @click="showCreateAlbumModal = false" class="cancel-btn">取消</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 管理歌曲专辑弹窗 -->
+        <div v-if="showAddToAlbumModal" class="modal-overlay" @click.self="showAddToAlbumModal = false">
+            <div class="modal-content">
+                <h3>管理专辑</h3>
+                <p>将歌曲添加到专辑 (或选择空移出专辑)</p>
+                <div class="form-group">
+                    <label>选择专辑</label>
+                    <select v-model="selectedAlbumId" class="modal-input" style="width: 100%; padding: 8px;">
+                        <option value="">(移出专辑)</option>
+                        <option v-for="album in myAlbums" :key="album.album_id" :value="album.album_id">
+                            {{ album.album_name }}
+                        </option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button @click="handleAddToAlbum" class="confirm-btn">确认保存</button>
+                    <button @click="showAddToAlbumModal = false" class="cancel-btn">取消</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 确认删除弹窗 -->
+        <ConfirmModal 
+            v-if="showConfirmWindow"
+            :message="pendingDelete?.msg"
+            @confirm="confirmDelete"
+            @cancel="showConfirmWindow = false"
+        />
+
+        <!-- 管理专辑内容弹窗 -->
+        <div v-if="showManageAlbumContentModal" class="modal-overlay" @click.self="showManageAlbumContentModal = false">
+            <div class="modal-content manage-album-modal">
+                <h3>管理专辑内容: {{ currentManageAlbum?.album_name }}</h3>
+                
+                <div class="manage-section">
+                    <h4>专辑内歌曲</h4>
+                    <div v-if="currentAlbumSongs.length === 0" class="empty-tip-small">暂无歌曲</div>
+                    <ul class="song-list-small">
+                        <li v-for="song in currentAlbumSongs" :key="song.song_id">
+                            <span>{{ song.title }}</span>
+                            <button @click="removeSongFromAlbum(song)" class="action-btn remove">移除</button>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="manage-section">
+                    <h4>添加歌曲 (未归属专辑)</h4>
+                    <div v-if="availableSongs.length === 0" class="empty-tip-small">暂无可添加歌曲</div>
+                    <ul class="song-list-small">
+                        <li v-for="song in availableSongs" :key="song.song_id">
+                            <span>{{ song.title }}</span>
+                            <button @click="addSongToAlbum(song)" class="action-btn add">添加</button>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="modal-actions">
+                    <button @click="showManageAlbumContentModal = false" class="cancel-btn">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+
+<script setup>
+import { ref, onMounted, watch, computed } from 'vue'
+import { showMessage } from '../../../utils/message'
+import { getUserInfo, getArtistProfile, updateArtistProfile } from '../../../api/user'
+import { uploadSong, getMySongs, deleteSong, updateSong } from '../../../api/song'
+import { createAlbum, getMyAlbums, deleteAlbum } from '../../../api/album'
+import ConfirmModal from '../../../components/ConfirmModal.vue'
+
+const emit = defineEmits(['play', 'select-album'])
+
+const creatorContent = ref('publishedSongs')
+const mySongs = ref([])
+const myAlbums = ref([])
+const artistProfile = ref({
+    name: '',
+    region: '',
+    bio: ''
+})
+const artistId = ref(null)
+
+// Modals
+const showUploadModal = ref(false)
+const showCreateAlbumModal = ref(false)
+const showAddToAlbumModal = ref(false)
+const showManageAlbumContentModal = ref(false)
+const showConfirmWindow = ref(false)
+const pendingDelete = ref(null)
+
+// Forms & Selections
+const uploadForm = ref({
+    title: '',
+    album_id: '',
+    duration: '',
+    release_date: new Date().toISOString().split('T')[0],
+    file: null,
+    cover_url: ''
+})
+const createAlbumForm = ref({
+    name: '',
+    release_time: new Date().toISOString().split('T')[0],
+})
+const selectedSongId = ref(null)
+const selectedAlbumId = ref('')
+const currentManageAlbum = ref(null)
+
+onMounted(async () => {
+    await loadUserInfo()
+    await loadCreatorData()
+})
+
+async function loadUserInfo() {
+    try {
+        const userStr = localStorage.getItem('user')
+        if (userStr) {
+            const user = JSON.parse(userStr)
+            artistId.value = user.artist_id
+        }
+        // Fetch latest to be sure
+        const userInfo = await getUserInfo()
+        if (userInfo) {
+            artistId.value = userInfo.artist_id
+        }
+    } catch (e) {
+        console.warn('获取用户信息失败', e)
+    }
+}
+
+async function loadCreatorData() {
+    try {
+        const [songs, albums] = await Promise.all([getMySongs(), getMyAlbums()])
+        mySongs.value = songs || []
+        myAlbums.value = albums || []
+    } catch (e) {
+        console.error('加载创作者数据失败', e)
+    }
+}
+
+async function loadArtistProfileData() {
+    try {
+        const data = await getArtistProfile()
+        artistProfile.value = data
+    } catch (e) {
+        showMessage(e.message || '加载歌手信息失败', 'error')
+    }
+}
+
+async function saveArtistProfile() {
+    if (!artistProfile.value.name.trim()) {
+        showMessage('歌手名称不能为空', 'warning')
+        return
+    }
+    try {
+        await updateArtistProfile(artistProfile.value)
+        showMessage('保存成功', 'success')
+    } catch (e) {
+        showMessage(e.message || '保存失败', 'error')
+    }
+}
+
+watch(creatorContent, (newVal) => {
+    if (newVal === 'artistProfile') {
+        loadArtistProfileData()
+    }
+})
+
+// Upload Song
+function handleFileChange(event) {
+    const file = event.target.files[0]
+    if (file) {
+        uploadForm.value.file = file
+        const audio = new Audio(URL.createObjectURL(file))
+        audio.onloadedmetadata = () => {
+            uploadForm.value.duration = Math.round(audio.duration)
+        }
+    }
+}
+
+async function handleUploadSong() {
+    if (!uploadForm.value.title || !uploadForm.value.file || !uploadForm.value.duration || !uploadForm.value.release_date) {
+        showMessage('请填写完整信息 (标题, 文件, 时长, 发布日期)', 'warning')
+        return
+    }
+    
+    const formData = new FormData()
+    formData.append('title', uploadForm.value.title)
+    if (uploadForm.value.album_id) formData.append('album_id', uploadForm.value.album_id)
+    formData.append('duration', uploadForm.value.duration)
+    formData.append('release_date', uploadForm.value.release_date)
+    formData.append('audio_file', uploadForm.value.file)
+    if (uploadForm.value.cover_url) formData.append('cover_url', uploadForm.value.cover_url)
+    
+    try {
+        await uploadSong(formData)
+        showMessage('上传成功！', 'success')
+        showUploadModal.value = false
+        uploadForm.value = {
+            title: '',
+            album_id: '',
+            duration: '',
+            release_date: new Date().toISOString().split('T')[0],
+            file: null,
+            cover_url: ''
+        }
+        loadCreatorData()
+    } catch (e) {
+        showMessage(e.message || '上传失败', 'error')
+    }
+}
+
+// Create Album
+async function handleCreateAlbum() {
+    if (!createAlbumForm.value.name || !createAlbumForm.value.release_time) {
+        showMessage('请填写完整信息', 'warning')
+        return
+    }
+
+    if (!artistId.value) {
+        showMessage('歌手信息校验失败。请确认您已登录且身份为歌手。', 'error')
+        return
+    }
+
+    try {
+        await createAlbum({
+            album_name: createAlbumForm.value.name,
+            release_time: createAlbumForm.value.release_time,
+            singer_id: artistId.value 
+        })
+        showMessage('创建专辑成功', 'success')
+        showCreateAlbumModal.value = false
+        createAlbumForm.value.name = ''
+        loadCreatorData()
+    } catch (e) {
+        showMessage(e.message || '创建专辑失败', 'error')
+    }
+}
+
+// Delete Handlers
+function handleDeleteSong(id) {
+    pendingDelete.value = { type: 'mySong', id, msg: '确认删除此歌曲？' }
+    showConfirmWindow.value = true
+}
+
+function handleDeleteAlbum(id) {
+    pendingDelete.value = { 
+        type: 'myAlbum', 
+        id, 
+        msg: '确认删除此专辑？(专辑内的歌曲将保留但移出专辑)' 
+    }
+    showConfirmWindow.value = true
+}
+
+async function confirmDelete() {
+    if (!pendingDelete.value) return
+    
+    const { type, id } = pendingDelete.value
+    try {
+        if (type === 'myAlbum') {
+            await deleteAlbum(id)
+        } else if (type === 'mySong') {
+            await deleteSong(id)
+        }
+        loadCreatorData()
+        showConfirmWindow.value = false
+        pendingDelete.value = null
+    } catch (e) {
+        showMessage(e.message || '删除失败', 'error')
+    }
+}
+
+// Add to Album
+function openAddToAlbum(song) {
+    selectedSongId.value = song.song_id
+    selectedAlbumId.value = song.album_id || ''
+    showAddToAlbumModal.value = true
+}
+
+async function handleAddToAlbum() {
+    try {
+        await updateSong(selectedSongId.value, { album_id: selectedAlbumId.value || null })
+        showMessage('更新成功', 'success')
+        showAddToAlbumModal.value = false
+        loadCreatorData()
+    } catch (e) {
+        showMessage(e.message || '更新失败', 'error')
+    }
+}
+
+// Manage Album Content
+const currentAlbumSongs = computed(() => {
+    if (!currentManageAlbum.value) return []
+    return mySongs.value.filter(s => s.album_id === currentManageAlbum.value.album_id)
+})
+
+const availableSongs = computed(() => {
+    return mySongs.value.filter(s => !s.album_id)
+})
+
+function openManageAlbumContent(album) {
+    currentManageAlbum.value = album
+    showManageAlbumContentModal.value = true
+}
+
+async function addSongToAlbum(song) {
+    if (!currentManageAlbum.value) return
+    try {
+        await updateSong(song.song_id, { album_id: currentManageAlbum.value.album_id })
+        const target = mySongs.value.find(s => s.song_id === song.song_id)
+        if (target) {
+            target.album_id = currentManageAlbum.value.album_id
+            target.album_title = currentManageAlbum.value.album_name
+        }
+    } catch (e) {
+        showMessage(e.message || '添加失败', 'error')
+    }
+}
+
+async function removeSongFromAlbum(song) {
+    try {
+        await updateSong(song.song_id, { album_id: null })
+        const target = mySongs.value.find(s => s.song_id === song.song_id)
+        if (target) {
+            target.album_id = null
+            target.album_title = null
+        }
+    } catch (e) {
+        showMessage(e.message || '移除失败', 'error')
+    }
+}
+</script>
+
+<style scoped>
+.fav-group h3 {
+    font-size: 18px;
+    color: #555;
+    margin: 0;
+}
+
+.group-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    border-bottom: 2px solid #f0f0f0;
+    padding-bottom: 10px;
+}
+
+.add-list {
+    padding: 6px 14px;
+    background-color: #4caf50;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.add-list:hover {
+    background-color: #45a049;
+}
+
+.fav-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.fav-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    background: #f9f9f9;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.fav-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    background: #fff;
+}
+
+.fav-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.fav-title {
+    font-weight: bold;
+    font-size: 16px;
+    color: #333;
+}
+
+.remove-btn {
+    background: none;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    transition: background-color 0.3s;
+}
+
+.remove-btn:hover {
+    background-color: #ffebee;
+}
+
+.empty-tip {
+    color: #999;
+    font-style: italic;
+    padding: 20px 0;
+}
+
+.info-section {
+    margin-top: 30px;
+    text-align: left;
+    margin-left: 30px;
+}
+
+.info-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: 500px;
+    margin-top: 15px;
+}
+
+.label {
+    font-weight: bold;
+    color: #333;
+    min-width: 60px;
+}
+
+.info-item input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+    font-size: 16px;
+    outline: none;
+    transition: border-color 0.3s;
+}
+
+.info-item input:focus {
+    border-color: #2563eb;
+}
+
+.info-item button {
+    padding: 6px 14px;
+    background-color: #3cc0ef;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    white-space: nowrap;
+}
+
+.info-item button:hover {
+    background-color: #3298eb;
+}
+
+/* Modal Styles */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    padding: 24px;
+    border-radius: 12px;
+    width: 400px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.modal-content h3 {
+    margin: 0;
+    color: #333;
+    text-align: center;
+}
+
+.modal-input {
+    padding: 10px;
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+    font-size: 16px;
+    outline: none;
+    transition: border-color 0.3s;
+}
+
+.modal-input:focus {
+    border-color: #2563eb;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.modal-actions button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.confirm-btn {
+    background-color: #4caf50;
+    color: white;
+}
+
+.confirm-btn:hover {
+    background-color: #45a049;
+}
+
+.cancel-btn {
+    background-color: #f5f5f5;
+    color: #666;
+}
+
+.cancel-btn:hover {
+    background-color: #e0e0e0;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.form-group label {
+    font-size: 14px;
+    font-weight: bold;
+    color: #555;
+}
+
+.upload-modal {
+    width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.manage-album-modal {
+    width: 500px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.manage-section h4 {
+    margin: 10px 0;
+    color: #555;
+    font-size: 14px;
+    border-left: 3px solid #4caf50;
+    padding-left: 8px;
+}
+
+.song-list-small {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 150px;
+    overflow-y: auto;
+    border: 1px solid #eee;
+    border-radius: 4px;
+}
+
+.song-list-small li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    border-bottom: 1px solid #f9f9f9;
+}
+
+.song-list-small li:last-child {
+    border-bottom: none;
+}
+
+.song-list-small li:hover {
+    background-color: #f5f5f5;
+}
+
+.empty-tip-small {
+    color: #999;
+    font-size: 12px;
+    padding: 10px;
+    text-align: center;
+    background: #f9f9f9;
+    border-radius: 4px;
+}
+
+.action-btn {
+    padding: 4px 8px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.action-btn.add {
+    background-color: #e3f2fd;
+    color: #1976d2;
+}
+
+.action-btn.add:hover {
+    background-color: #bbdefb;
+}
+
+.action-btn.remove {
+    background-color: #ffebee;
+    color: #d32f2f;
+}
+
+.action-btn.remove:hover {
+    background-color: #ffcdd2;
+}
+</style>

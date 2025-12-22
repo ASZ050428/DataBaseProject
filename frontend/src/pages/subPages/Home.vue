@@ -26,8 +26,10 @@
                             <div class="item-title">{{ song.title }}</div>
                             <div class="item-sub">时长: {{ formatDuration(song.duration) }}</div>
                         </div>
-                        <button class="action-btn" @click="emit('play', song.audio_url)" style="margin-right: 10px;">▶ 播放</button>
-                        <button class="action-btn" @click="openCollectModal(song.song_id)">➕ 收藏</button>
+                        <div class="item-actions">
+                            <button class="action-btn btn-play" @click="emit('play', song.audio_url)">▶ 播放</button>
+                            <button class="action-btn btn-collect" @click="openCollectModal(song.song_id)">❤ 收藏</button>
+                        </div>
                     </li>
                 </ul>
             </div>
@@ -42,7 +44,7 @@
                             <div class="item-title">{{ album.album_name }}</div>
                             <div class="item-sub">发行时间: {{ formatDate(album.release_time) }}</div>
                         </div>
-                        <button class="action-btn" @click="handleCollectAlbum(album.album_id)">❤️ 收藏</button>
+                        <button class="action-btn btn-collect" @click="handleCollectAlbum(album.album_id)">❤ 收藏</button>
                     </li>
                 </ul>
             </div>
@@ -57,7 +59,7 @@
                             <div class="item-title">{{ artist.artist_name }}</div>
                             <div class="item-sub">地区: {{ artist.region }}</div>
                         </div>
-                        <button class="action-btn" @click="handleFollowArtist(artist.artist_id)">❤️ 关注</button>
+                        <button class="action-btn btn-follow" @click="handleFollowArtist(artist.artist_id)">＋ 关注</button>
                     </li>
                 </ul>
             </div>
@@ -82,6 +84,7 @@
 </template>
 
 <script setup>
+import { showMessage } from '../../utils/message'
 import { ref } from 'vue'
 import { searchSong, searchAlbum, searchArtist } from '../../api/search'
 import { 
@@ -111,25 +114,25 @@ async function openCollectModal(songId) {
         myCollections.value = Array.isArray(list) ? list : []
         showModal.value = true
     } catch (e) {
-        alert(e.message || '获取歌单失败')
+        showMessage(e.message || '获取歌单失败', 'error')
     }
 }
 
 async function handleCollectAlbum(albumId) {
     try {
         await addFavoriteAlbum(albumId)
-        alert('专辑收藏成功！')
+        showMessage('专辑收藏成功！', 'success')
     } catch (e) {
-        alert(e.message || '收藏失败')
+        showMessage(e.message || '收藏失败', 'error')
     }
 }
 
 async function handleFollowArtist(artistId) {
     try {
         await addFavoriteArtist(artistId)
-        alert('关注成功！')
+        showMessage('关注成功！', 'success')
     } catch (e) {
-        alert(e.message || '关注失败')
+        showMessage(e.message || '关注失败', 'error')
     }
 }
 
@@ -137,10 +140,10 @@ async function confirmCollect(listId) {
     if (!targetSongId.value) return
     try {
         await addSongToCollection(listId, targetSongId.value)
-        alert('收藏成功！')
+        showMessage('收藏成功！', 'success')
         showModal.value = false
     } catch (e) {
-        alert(e.message || '收藏失败')
+        showMessage(e.message || '收藏失败', 'error')
     }
 }
 
@@ -345,6 +348,9 @@ h1 {
     flex-direction: column;
     gap: 4px;
     overflow: hidden;
+    flex: 1;
+    min-width: 0;
+    margin-right: 10px;
 }
 
 .item-title {
@@ -361,22 +367,50 @@ h1 {
     color: #666;
 }
 
-.action-btn {
-    padding: 6px 12px;
-    background-color: #fff;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 13px;
-    cursor: pointer;
-    transition: all 0.2s;
-    white-space: nowrap;
-    margin-left: 10px;
+.item-actions {
+    display: flex;
+    gap: 10px;
+    flex-shrink: 0;
 }
 
-.action-btn:hover {
-    background-color: #f0f0f0;
-    border-color: #ccc;
+.action-btn {
+    padding: 6px 16px;
+    border: none;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.btn-play {
+    background-color: #ebf2ff;
     color: #2563eb;
+}
+.btn-play:hover {
+    background-color: #2563eb;
+    color: white;
+}
+
+.btn-collect {
+    background-color: #fff0f0;
+    color: #ef4444;
+}
+.btn-collect:hover {
+    background-color: #ef4444;
+    color: white;
+}
+
+.btn-follow {
+    background-color: #f0fdf4;
+    color: #16a34a;
+}
+.btn-follow:hover {
+    background-color: #16a34a;
+    color: white;
 }
 
 .empty-tip {

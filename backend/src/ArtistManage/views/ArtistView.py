@@ -52,6 +52,54 @@ class UpgradeArtistView(APIView):
         kwargs['partial'] = True
         return super().update(request, *args, **kwargs)  # 复用update逻辑
 
+class ArtistProfileView(APIView):
+    """歌手个人信息管理"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_artist_id(self, user_id):
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT artist_id FROM user_become_artist WHERE user_id=%s", [user_id])
+            row = cursor.fetchone()
+            return row[0] if row else None
+
+    def get(self, request):
+        artist_id = self.get_artist_id(request.user.id)
+        if not artist_id:
+            return api_response(code=1, message='您还不是歌手')
+        
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT artist_name, region, bio FROM artist WHERE artist_id=%s", [artist_id])
+            row = cursor.fetchone()
+            if not row:
+                return api_response(code=1, message='歌手信息不存在')
+            
+            data = {
+                'name': row[0],
+                'region': row[1],
+                'bio': row[2]
+            }
+            return api_response(data=data)
+
+    def put(self, request):
+        artist_id = self.get_artist_id(request.user.id)
+        if not artist_id:
+            return api_response(code=1, message='您还不是歌手')
+        
+        name = request.data.get('name')
+        region = request.data.get('region')
+        bio = request.data.get('bio')
+
+        if not name:
+             return api_response(code=1, message='歌手名称不能为空')
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "UPDATE artist SET artist_name=%s, region=%s, bio=%s WHERE artist_id=%s",
+                [name, region, bio, artist_id]
+            )
+        
+        return api_response(message='更新成功')
+
 # 注销视图：保持简洁，仅返回艺术家相关提示
 class LogoutView(APIView):
     permission_classes = [permissions.IsAuthenticated]

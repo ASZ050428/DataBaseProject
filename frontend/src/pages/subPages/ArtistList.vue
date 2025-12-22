@@ -67,6 +67,9 @@ onMounted(async () => {
 .artist-info h3 {
     margin: 0 0 10px 0;
     color: #333;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .region {

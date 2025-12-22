@@ -1,6 +1,6 @@
 from rest_framework import generics, permissions,viewsets, filters
 from django.contrib.auth.models import User
-from UserManage.serializers.UserSerializer import UserSerializer, RegisterSerializer
+from UserManage.serializers.UserSerializer import UserSerializer, RegisterSerializer, ChangePasswordSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -130,3 +130,31 @@ class MeView(APIView):
             'artist_id': artist_id
         }
         return api_response(data=data)
+    
+    def put(self, request):
+        user = request.user
+        new_username = request.data.get('username')
+
+        if not new_username:
+            return api_response(code=1, message='缺少用户名', data=None)
+        
+        user.username = new_username
+        user.save()
+        return api_response(message='用户名修改成功')
+    
+class ChangePasswordView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        serializer = ChangePasswordSerializer(data=request.data)
+        if serializer.is_valid():
+            user = request.user
+            if not user.check_password(serializer.data.get('old_password')):
+                return api_response(code=1, message='旧密码错误')
+            
+            user.set_password(serializer.data.get('new_password'))
+            user.save()
+            return api_response(message='密码修改成功')
+        
+        error_msg = list(serializer.errors.values())[0][0] if serializer.errors else '参数错误'
+        return api_response(code=2, message=error_msg)

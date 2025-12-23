@@ -10,7 +10,7 @@
                 <div class="fav-info" style="cursor: pointer" title="点击查看歌手详情">
                     <div class="fav-title">{{ artist.title }}</div>
                 </div>
-                <button class="remove-btn" @click="removeArtist(artist.id)">💔</button>
+                <button class="remove-btn" @click.stop="removeArtist(artist.id)">💔</button>
             </li>
         </ul>
 

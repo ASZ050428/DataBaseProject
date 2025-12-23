@@ -215,7 +215,7 @@ class MySongUpdateView(APIView):
             
             with connection.cursor() as cursor:
                 cursor.execute(
-                    "UPDATE song SET album_id=%s, update_time=CURRENT_TIMESTAMP WHERE song_id=%s",
+                    "UPDATE song SET album_id=%s WHERE song_id=%s",
                     [album_id, pk]
                 )
         

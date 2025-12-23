@@ -202,8 +202,6 @@ const createAlbumForm = ref({
     name: '',
     release_time: new Date().toISOString().split('T')[0],
 })
-const selectedSongId = ref(null)
-const selectedAlbumId = ref('')
 const currentManageAlbum = ref(null)
 
 onMounted(async () => {

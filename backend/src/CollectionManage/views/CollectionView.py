@@ -111,13 +111,20 @@ class MyCollectionListsView(APIView):
         try:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    "SELECT cl.LIST_ID, cl.LIST_NAME FROM user_favourite_songs_list cl "
+                    "SELECT cl.LIST_ID, cl.LIST_NAME, cl.CREATE_TIME FROM user_favourite_songs_list cl "
                     "JOIN user_list_relation ulr ON cl.LIST_ID=ulr.LIST_ID "
                     "WHERE ulr.USER_ID=%s ORDER BY cl.CREATE_TIME DESC",
                     [request.user.id],
                 )
                 rows = cursor.fetchall()
-            data = [{'id': r[0], 'title': r[1]} for r in rows]
+            data = [
+                {
+                    'id': r[0], 
+                    'title': r[1],
+                    'create_time': r[2].strftime('%Y-%m-%d %H:%M:%S') if r[2] else None
+                } 
+                for r in rows
+            ]
             return api_response(data=data)
         except Exception as e:
             return api_response(code=500, message=f'数据库连接失败: {str(e)}', data=None, status_code=500)
@@ -196,7 +203,7 @@ class MyCollectionListSongsView(APIView):
             return api_response(code=2, message='未找到列表', data=None)
         with connection.cursor() as cursor:
             cursor.execute(
-                "SELECT s.song_id, s.title, s.audio_url, s.duration, s.release_date, a.artist_name "
+                "SELECT s.song_id, s.title, s.audio_url, s.duration, s.release_date, a.artist_name, i.ADD_TIME "
                 "FROM user_song_list_relation i "
                 "JOIN song s ON i.SONG_ID=s.song_id "
                 "LEFT JOIN artist a ON s.artist_id=a.artist_id "
@@ -212,7 +219,8 @@ class MyCollectionListSongsView(APIView):
                 'audio_url': r[2],
                 'duration': r[3],
                 'release_date': r[4],
-                'artist_name': r[5]
+                'artist_name': r[5],
+                'add_time': r[6].strftime('%Y-%m-%d %H:%M:%S') if r[6] else None
             } 
             for r in rows
         ]
@@ -340,7 +348,14 @@ class MyArtistFollowView(APIView):
                 [request.user.id],
             )
             rows = cursor.fetchall()
-        data = [{'id': r[0], 'title': r[1], 'follow_time': r[2]} for r in rows]
+        data = [
+            {
+                'id': r[0], 
+                'title': r[1], 
+                'follow_time': r[2].strftime('%Y-%m-%d %H:%M:%S') if r[2] else None
+            } 
+            for r in rows
+        ]
         return api_response(data=data)
     def post(self, request):
         artist_id = request.data.get('artist_id') or request.data.get('singer_id')

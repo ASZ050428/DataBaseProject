@@ -12,6 +12,7 @@
                 <li v-for="list in favoriteSongsList" :key="list.id" class="fav-item" @click="showCollectionList(list)">
                     <div class="fav-info">
                         <div class="fav-title">{{ list.title }}</div>
+                        <div class="fav-time" style="font-size: 12px; color: #999;">创建于: {{ formatDate(list.create_time) }}</div>
                     </div>
                     <button class="remove-btn" @click.stop="removeList(list.id)">💔</button>
                 </li>
@@ -207,6 +208,16 @@ async function confirmDelete() {
 function handleRemoveSong(songId) {
     pendingDelete.value = { type: 'song', id: songId, msg: '确认从歌单移除此歌曲？' }
     showConfirmWindow.value = true
+}
+
+function formatDate(dateString) {
+    if (!dateString) return '未知时间'
+    let date = new Date(dateString)
+    if (isNaN(date.getTime())) {
+        date = new Date(dateString.replace(/-/g, '/'))
+    }
+    if (isNaN(date.getTime())) return '未知时间'
+    return date.toLocaleString()
 }
 </script>
 

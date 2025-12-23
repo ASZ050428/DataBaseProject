@@ -9,6 +9,7 @@
             <li v-for="album in favoriteAlbums" :key="album.id" class="fav-item" @click="$emit('select-album', album.id)">
                 <div class="fav-info" style="cursor: pointer">
                     <div class="fav-title">{{ album.title }}</div>
+                    <div class="fav-time" style="font-size: 12px; color: #999;">收藏于: {{ formatDate(album.collect_time) }}</div>
                 </div>
                 <button class="remove-btn" @click.stop="removeAlbum(album.id)">💔</button>
             </li>
@@ -68,6 +69,19 @@ async function confirmDelete() {
     } catch (e) {
         showMessage(e.message || '移除失败', 'error')
     }
+}
+
+function formatDate(dateString) {
+    if (!dateString) return '未知时间'
+    // 兼容 iOS/Safari: 2025-12-21 23:34:28 -> 2025/12/21 23:34:28
+    // 如果已经是 ISO 格式或者标准格式，new Date() 会尝试解析
+    let date = new Date(dateString)
+    if (isNaN(date.getTime())) {
+        // 尝试替换 - 为 /，并处理可能的空格
+        date = new Date(dateString.replace(/-/g, '/'))
+    }
+    if (isNaN(date.getTime())) return '未知时间'
+    return date.toLocaleString()
 }
 </script>
 

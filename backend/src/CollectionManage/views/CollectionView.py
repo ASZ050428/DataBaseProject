@@ -281,11 +281,18 @@ class MyAlbumCollectView(APIView):
     def get(self, request):
         with connection.cursor() as cursor:
             cursor.execute(
-                "SELECT a.album_id, a.album_name FROM user_favourite_albums u JOIN album a ON u.ALBUM_ID=a.album_id WHERE u.USER_ID=%s ORDER BY u.COLLECT_TIME DESC",
+                "SELECT a.album_id, a.album_name, u.COLLECT_TIME FROM user_favourite_albums u JOIN album a ON u.ALBUM_ID=a.album_id WHERE u.USER_ID=%s ORDER BY u.COLLECT_TIME DESC",
                 [request.user.id],
             )
             rows = cursor.fetchall()
-        data = [{'id': r[0], 'title': r[1]} for r in rows]
+        data = [
+            {
+                'id': r[0], 
+                'title': r[1], 
+                'collect_time': r[2].strftime('%Y-%m-%d %H:%M:%S') if r[2] else None
+            } 
+            for r in rows
+        ]
         return api_response(data=data)
     def post(self, request):
         album_id = request.data.get('album_id')
@@ -329,11 +336,11 @@ class MyArtistFollowView(APIView):
     def get(self, request):
         with connection.cursor() as cursor:
             cursor.execute(
-                "SELECT s.artist_id, s.artist_name FROM user_follow_artists u JOIN artist s ON u.ARTIST_ID=s.artist_id WHERE u.USER_ID=%s ORDER BY u.FOLLOW_TIME DESC",
+                "SELECT s.artist_id, s.artist_name, u.FOLLOW_TIME FROM user_follow_artists u JOIN artist s ON u.ARTIST_ID=s.artist_id WHERE u.USER_ID=%s ORDER BY u.FOLLOW_TIME DESC",
                 [request.user.id],
             )
             rows = cursor.fetchall()
-        data = [{'id': r[0], 'title': r[1]} for r in rows]
+        data = [{'id': r[0], 'title': r[1], 'follow_time': r[2]} for r in rows]
         return api_response(data=data)
     def post(self, request):
         artist_id = request.data.get('artist_id') or request.data.get('singer_id')

@@ -9,6 +9,7 @@
                 <div class="album-info">
                     <h3>{{ album.album_name }}</h3>
                     <p class="release-time">发行时间: {{ album.release_time }}</p>
+                    <p class="artist-name">歌手: {{ album.artist_name }}</p>
                     <!-- 如果有歌手信息可以在这里显示，目前API只返回了 singer_id -->
                 </div>
                 <button class="action-btn btn-collect" @click.stop="handleCollectAlbum(album.album_id)">❤ 收藏</button>
@@ -95,6 +96,12 @@ onMounted(async () => {
 .release-time {
     color: #666;
     font-size: 0.9em;
+}
+
+.artist-name {
+    color: #666;
+    font-size: 0.9em;
+    margin-top: 5px;
 }
 
 .action-btn {

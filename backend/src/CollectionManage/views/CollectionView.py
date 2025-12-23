@@ -196,9 +196,10 @@ class MyCollectionListSongsView(APIView):
             return api_response(code=2, message='未找到列表', data=None)
         with connection.cursor() as cursor:
             cursor.execute(
-                "SELECT s.song_id, s.title, s.audio_url, s.duration, s.play_count, s.release_date "
+                "SELECT s.song_id, s.title, s.audio_url, s.duration, s.play_count, s.release_date, a.artist_name "
                 "FROM user_song_list_relation i "
                 "JOIN song s ON i.SONG_ID=s.song_id "
+                "LEFT JOIN artist a ON s.artist_id=a.artist_id "
                 "WHERE i.LIST_ID=%s "
                 "ORDER BY i.ADD_TIME DESC",
                 [list_id],
@@ -211,7 +212,8 @@ class MyCollectionListSongsView(APIView):
                 'audio_url': r[2],
                 'duration': r[3],
                 'play_count': r[4],
-                'release_date': r[5]
+                'release_date': r[5],
+                'artist_name': r[6]
             } 
             for r in rows
         ]

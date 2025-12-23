@@ -8,6 +8,7 @@
             <div class="header">
                 <h1>{{ album.album_name }}</h1>
                 <p class="meta">发行时间: {{ album.release_time }}</p>
+                <p class="meta">歌手: {{ album.artist_name }}</p>
             </div>
 
             <div class="section">

@@ -19,7 +19,7 @@ class AlbumViewSet(BaseReadOnlyViewSet):
     search_fields = ['=album_name']
     def list(self, request, *args, **kwargs):
         search = request.query_params.get('search')
-        sql = "SELECT album_id, album_name, release_time, album_artist_id FROM album"
+        sql = "SELECT album_id, album_name, release_time, artist_name FROM album JOIN artist ON album.album_artist_id = artist.artist_id"
         params = []
         if search:
             sql += " WHERE album_name LIKE %s"
@@ -28,7 +28,7 @@ class AlbumViewSet(BaseReadOnlyViewSet):
         with connection.cursor() as cursor:
             cursor.execute(sql, params)
             rows = cursor.fetchall()
-        data = [{ 'album_id': r[0], 'album_name': r[1], 'release_time': r[2], 'singer_id': r[3] } for r in rows]
+        data = [{ 'album_id': r[0], 'album_name': r[1], 'release_time': r[2], 'artist_name': r[3] } for r in rows]
         return api_response(data=data)
     def retrieve(self, request, *args, **kwargs):
         pk = kwargs.get('pk')
@@ -65,9 +65,19 @@ class AlbumViewSet(BaseReadOnlyViewSet):
                 for r in cursor.fetchall()
             ]
 
+            # 3. 获取歌手名称
+            cursor.execute(
+                "SELECT artist_name FROM artist WHERE artist_id=%s",
+                [album_info['singer_id']]
+            )
+            artist_row = cursor.fetchone()
+            artist_name = artist_row[0] if artist_row else ''
+
+
         data = {
             **album_info,
-            'songs': songs
+            'songs': songs,
+            'artist_name': artist_name
         }
         return api_response(data=data)
 

@@ -4,6 +4,7 @@
             <div class="item-title">{{ song.title }}</div>
             <div class="item-sub">时长: {{ formatDuration(song.duration) }}</div>
             <div v-if="song.artist_name" class="item-sub">歌手: {{ song.artist_name }}</div>
+            <div v-if="song.add_time" class="item-sub" style="font-size: 12px; color: #999;">收藏于: {{ formatDate(song.add_time) }}</div>
         </div>
         <div class="item-actions">
             <button class="action-btn btn-play" @click="$emit('play', song.audio_url)">▶ 播放</button>
@@ -35,6 +36,16 @@ function formatDuration(seconds) {
     const min = Math.floor(seconds / 60)
     const sec = seconds % 60
     return `${min}:${sec.toString().padStart(2, '0')}`
+}
+
+function formatDate(dateString) {
+    if (!dateString) return '未知时间'
+    let date = new Date(dateString)
+    if (isNaN(date.getTime())) {
+        date = new Date(dateString.replace(/-/g, '/'))
+    }
+    if (isNaN(date.getTime())) return '未知时间'
+    return date.toLocaleString()
 }
 </script>
 

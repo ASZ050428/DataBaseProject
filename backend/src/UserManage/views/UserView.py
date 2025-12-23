@@ -24,9 +24,6 @@ def get_user_id_from_token(request):
         return None
 
 class LoginView(APIView):
-    """
-    自定义登录视图：完全使用 SQL 查询 user 表
-    """
     permission_classes = [] # 允许匿名访问
 
     def post(self, request):

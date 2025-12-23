@@ -1,7 +1,7 @@
 import { getAuthHeaders, handleResponse } from './collection'
 
 export async function upgradeToArtist(artistName) {
-    const res = await fetch('/api/auth/upgrade-artist/', {
+    const res = await fetch('/api/artist/upgrade-artist/', {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({ name: artistName })
@@ -11,7 +11,7 @@ export async function upgradeToArtist(artistName) {
 }
 
 export async function getUserInfo() {
-    const res = await fetch('/api/auth/me/', {
+    const res = await fetch('/api/user/auth/me/', {
         method: 'GET',
         headers: getAuthHeaders()
     })
@@ -20,7 +20,7 @@ export async function getUserInfo() {
 }
 
 export async function updateUserName(newUsername) {
-    const res = await fetch('/api/auth/me/', {
+    const res = await fetch('/api/user/auth/me/', {
         method: 'PUT',
         headers: getAuthHeaders(),
         body: JSON.stringify({ username: newUsername })
@@ -44,7 +44,7 @@ export async function updateUserName(newUsername) {
 }
 
 export async function updatePassword(data) {
-    const res = await fetch('/api/auth/change-password/', {
+    const res = await fetch('/api/user/auth/change-password/', {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify(data)

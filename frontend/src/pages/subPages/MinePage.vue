@@ -33,7 +33,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, shallowRef } from 'vue'
+import { ref, onMounted } from 'vue'
 import { getUserInfo } from '../../api/user'
 
 // Import Sub-components

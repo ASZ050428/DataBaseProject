@@ -6,6 +6,6 @@ class User(models.Model):
     password = models.CharField(max_length=128, verbose_name="用户密码")
 
     class Meta:
-        db_table = "user"
+        db_table = "users"
         verbose_name = "用户"
         verbose_name_plural = "用户"

@@ -1,6 +1,5 @@
 // 最小登录 API helper
 export async function login({ username, password }) {
-  // 默认请求到 /api/auth/login/，根据后端实际地址修改
   const res = await fetch('/api/user/auth/login/', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

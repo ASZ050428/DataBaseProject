@@ -66,7 +66,7 @@ class SongCommentsView(APIView):
                 """
                 SELECT c.comment_id, u.username, c.content, c.create_time 
                 FROM comment c
-                JOIN auth_user u ON c.user_id = u.id
+                JOIN users u ON c.user_id = u.user_id
                 WHERE c.song_id=%s 
                 ORDER BY c.create_time DESC
                 """,

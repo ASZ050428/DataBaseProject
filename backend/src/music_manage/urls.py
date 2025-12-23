@@ -16,10 +16,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from UserManage.views.UserView import (
-    CustomTokenObtainPairView,
     RegisterView,
-    VerifyPasswordView,
-    IdentifyTypeView,
     MeView,
     ChangePasswordView,
 )
@@ -33,11 +30,8 @@ urlpatterns = [
     path('api/song/', include('SongManage.urls')),
     path('api/comment/', include('CommentManage.urls')),
     path('api/collection/', include('CollectionManage.urls')),
-    path('api/auth/login/', CustomTokenObtainPairView.as_view(), name='auth-login-root'),
     path('api/auth/register/', RegisterView.as_view(), name='auth-register-root'),
     path('api/auth/upgrade-artist/', UpgradeArtistView.as_view(), name='auth-upgrade-artist'),
-    path('api/auth/verify/', VerifyPasswordView.as_view(), name='auth-verify'),
-    path('api/auth/type/', IdentifyTypeView.as_view(), name='auth-type'),
     path('api/auth/me/', MeView.as_view(), name='auth-me'),
     path('api/auth/change-password/', ChangePasswordView.as_view(), name='auth-change-password'),
 ]

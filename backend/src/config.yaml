@@ -1,21 +1,12 @@
-Debug: true # Set to true for development
-
+Debug: true
 TaurusDBHost: 124.70.86.207
-TaurusDBPort: "3306"  # MySQL默认端口
+TaurusDBPort: "3306"
 TaurusDBUser: u23373490
-TaurusDBPassword: "Aa428830" #数据库密码
-TaurusDBName: try_db23373490
-
-
-# Redis
+TaurusDBPassword: "Aa428830"
+TaurusDBName: h_db23373490
 RedisAddress: localhost:6379
 RedisPassword: ""
 RedisDatabase: 0
-
-
-# Django specific
 DjangoSecretKey: 2bd+82%dkqf6=xv4*!e8%74$73j_w5s57_5llu8_s9)3yl^$rr
-
-# Application settings
 MaxUploadSize : 10485760
-LogPath: ./ll.log # LOG_PATH is optional
+LogPath: ./ll.log

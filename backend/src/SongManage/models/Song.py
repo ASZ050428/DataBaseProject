@@ -15,9 +15,6 @@ class Song(models.Model):
     release_date = models.DateField(verbose_name="发行日期")
     play_count = models.IntegerField(default=0, verbose_name="播放次数")
     audio_url = models.URLField(verbose_name="音频地址")
-    cover_url = models.URLField(blank=True, null=True, verbose_name="封面地址")
-    create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
-    update_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
     class Meta:
         db_table = "song"

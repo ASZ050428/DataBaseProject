@@ -25,6 +25,7 @@
                         <div class="item-info">
                             <div class="item-title">{{ song.title }}</div>
                             <div class="item-sub">时长: {{ formatDuration(song.duration) }}</div>
+                            <div class="item-sub">歌手: {{ song.artist_name }}</div>
                         </div>
                         <div class="item-actions">
                             <button class="action-btn btn-play" @click="emit('play', song.audio_url)">▶ 播放</button>

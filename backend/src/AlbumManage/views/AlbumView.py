@@ -51,7 +51,7 @@ class AlbumViewSet(BaseReadOnlyViewSet):
 
             # 2. 获取专辑内的歌曲
             cursor.execute(
-                "SELECT song_id, title, duration, play_count, audio_url FROM song WHERE album_id=%s ORDER BY song_id ASC",
+                "SELECT song_id, title, duration, audio_url FROM song WHERE album_id=%s ORDER BY song_id ASC",
                 [pk]
             )
             songs = [
@@ -59,8 +59,7 @@ class AlbumViewSet(BaseReadOnlyViewSet):
                     'song_id': r[0],
                     'title': r[1],
                     'duration': r[2],
-                    'play_count': r[3],
-                    'audio_url': r[4]
+                    'audio_url': r[3]
                 }
                 for r in cursor.fetchall()
             ]

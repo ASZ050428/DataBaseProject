@@ -20,29 +20,21 @@ CREATE TABLE `albums` (
   `ALBUM_ID` int unsigned NOT NULL AUTO_INCREMENT,
   `TITLE` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
   `RELEASE_DATE` date DEFAULT NULL,
+  `SINGER_ID` int unsigned NOT NULL,
   PRIMARY KEY (`ALBUM_ID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- 创建歌曲表
+-- 创建歌曲表 注：现在的歌曲和歌手应该是多对一的关系
 CREATE TABLE `songs` (
   `SONG_ID` int unsigned NOT NULL AUTO_INCREMENT,
   `ALBUM_ID` int unsigned DEFAULT NULL,
+  `ARTIST_ID` int unsigned NOT NULL,
   `SONG_NAME` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `DURATION` int unsigned NOT NULL,
-  `AUDIO_URL` int unsigned NOT NULL,
-  `LYRICS` text COLLATE utf8mb4_general_ci,
+  `AUDIO_URL` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `RELEASE_DATE` date DEFAULT NULL,
   PRIMARY KEY (`SONG_ID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- 创建歌曲-歌手关联表（多对多关系）
-CREATE TABLE `artist_song_relation` (
-  `SONG_ID` int unsigned NOT NULL,
-  `ARTIST_ID` int unsigned NOT NULL,
-  PRIMARY KEY (`SONG_ID`,`ARTIST_ID`)
-) ENGINE=InnoDB
- DEFAULT CHARSET=utf8mb4 
- COLLATE=utf8mb4_general_ci;
 
 -- 创建收藏列表表
 CREATE TABLE `user_favourite_songs_list` (
@@ -77,13 +69,6 @@ CREATE TABLE `user_list_relation` (
   PRIMARY KEY (`USER_ID`,`LIST_ID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- 创建用户，评论关联表
-CREATE TABLE `user_comment_relation` (
-  `USER_ID` int unsigned NOT NULL,
-  `COMMENT_ID` int unsigned NOT NULL,
-  PRIMARY KEY (`USER_ID`,`COMMENT_ID`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
 -- 创建用户关注歌手关联表
 CREATE TABLE `user_follow_artists` (
   `USER_ID` int unsigned NOT NULL,
@@ -98,13 +83,6 @@ CREATE TABLE `user_favourite_albums` (
   `ALBUM_ID` int unsigned NOT NULL,
   `COLLECT_TIME` datetime NOT NULL,
   PRIMARY KEY (`USER_ID`,`ALBUM_ID`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- 创建歌手专辑关联表
-CREATE TABLE `artist_album_relation` (
-  `ARTIST_ID` int unsigned NOT NULL,
-  `ALBUM_ID` int unsigned NOT NULL,
-  PRIMARY KEY (`ARTIST_ID`,`ALBUM_ID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- 用户称为歌手关联表

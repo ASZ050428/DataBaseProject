@@ -183,7 +183,7 @@ class ArtistViewSet(BaseReadOnlyViewSet):  # 类名更贴合模块功能
 
             # 3. 获取歌手的歌曲
             cursor.execute(
-                "SELECT song_id, title, duration, play_count, audio_url FROM song WHERE artist_id=%s ORDER BY play_count DESC",
+                "SELECT song_id, title, duration, release_date, audio_url FROM song WHERE artist_id=%s ORDER BY release_date DESC",
                 [pk]
             )
             songs = [
@@ -191,7 +191,7 @@ class ArtistViewSet(BaseReadOnlyViewSet):  # 类名更贴合模块功能
                     'song_id': r[0], 
                     'title': r[1], 
                     'duration': r[2], 
-                    'play_count': r[3],
+                    'release_date': r[3],
                     'audio_url': r[4]
                 }
                 for r in cursor.fetchall()

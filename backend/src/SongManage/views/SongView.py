@@ -26,7 +26,7 @@ class SongViewSet(BaseReadOnlyViewSet):
     def list(self, request, *args, **kwargs):
         search = request.query_params.get('search')
         sql = (
-            "SELECT song_id, title, artist_name, album_id, duration, release_date, play_count, audio_url "
+            "SELECT song_id, title, artist_name, album_id, duration, release_date, audio_url "
             "FROM song "
             "JOIN artist ON song.artist_id = artist.artist_id"
         )
@@ -47,8 +47,7 @@ class SongViewSet(BaseReadOnlyViewSet):
                 'album_id': r[3],
                 'duration': r[4],
                 'release_date': r[5],
-                'play_count': r[6],
-                'audio_url': r[7],
+                'audio_url': r[6],
             }
             for r in rows
         ]
@@ -70,7 +69,7 @@ class MySongListView(APIView):
 
         with connection.cursor() as cursor:
             cursor.execute(
-                "SELECT song_id, title, album_id, duration, release_date, play_count, audio_url, artist_name "
+                "SELECT song_id, title, album_id, duration, release_date, audio_url, artist_name "
                 "FROM song "
                 "JOIN artist ON song.artist_id = artist.artist_id "
                 "WHERE song.artist_id=%s ORDER BY release_date DESC",
@@ -95,9 +94,8 @@ class MySongListView(APIView):
                 'album_title': album_title,
                 'duration': r[3],
                 'release_date': r[4],
-                'play_count': r[5],
-                'audio_url': r[6],
-                'artist_name': r[7],
+                'audio_url': r[5],
+                'artist_name': r[6],
             })
         
         return api_response(data=data)
@@ -156,9 +154,9 @@ class MySongCreateView(APIView):
                 return api_response(code=5, message='专辑不存在', data=None)
         with connection.cursor() as cursor:
             cursor.execute(
-                "INSERT INTO song (title, artist_id, album_id, duration, release_date, audio_url, play_count) "
-                "VALUES (%s, %s, %s, %s, %s, %s, %s)",
-                [title, artist_id, album_id, int(duration), str(date), audio_url, 0],
+                "INSERT INTO song (title, artist_id, album_id, duration, release_date, audio_url) "
+                "VALUES (%s, %s, %s, %s, %s, %s)",
+                [title, artist_id, album_id, int(duration), str(date), audio_url],
             )
             new_id = cursor.lastrowid
             if not new_id:

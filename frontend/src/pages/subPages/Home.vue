@@ -47,7 +47,7 @@
                             <div class="item-sub">发行时间: {{ formatDate(album.release_time) }}</div>
                             <div class="item-sub">歌手: {{ album.artist_name }}</div>
                         </div>
-                        <button class="action-btn btn-collect" @click="handleCollectAlbum(album.album_id)">❤ 收藏</button>
+                        <button class="action-btn btn-collect" @click.stop="handleCollectAlbum(album.album_id)">❤ 收藏</button>
                     </li>
                 </ul>
             </div>

@@ -33,8 +33,9 @@
                     v-for="song in currentCollectionListSongs" 
                     :key="song.song_id" 
                     :song="song"
+                    :showRemove="true"
                     @play="$emit('play', $event)"
-                    @collect="openCollectModal"
+                    @collect="handleRemoveSong(song.song_id)"
                     @comment="openCommentModal"
                 />
             </ul>
@@ -88,7 +89,8 @@ import {
     getCollectionsList, 
     addCollection, 
     deleteCollection,
-    getCollectionListSongs
+    getCollectionListSongs,
+    removeSongFromCollection
 } from '../../../api/collection'
 
 const emit = defineEmits(['play'])
@@ -177,22 +179,34 @@ function backToCollections() {
 }
 
 function removeList(id) {
-    pendingDelete.value = { id }
+    pendingDelete.value = { type: 'list', id, msg: '确认删除此歌单？' }
     showConfirmWindow.value = true
 }
 
 async function confirmDelete() {
     if (!pendingDelete.value) return
     
-    const { id } = pendingDelete.value
+    const { type, id } = pendingDelete.value
     try {
-        await deleteCollection(id)
-        favoriteSongsList.value = favoriteSongsList.value.filter(item => item.id !== id)
+        if (type === 'list') {
+            await deleteCollection(id)
+            favoriteSongsList.value = favoriteSongsList.value.filter(item => item.id !== id)
+        } else if (type === 'song') {
+            if (!currentCollectionId.value) return
+            await removeSongFromCollection(currentCollectionId.value, id)
+            currentCollectionListSongs.value = currentCollectionListSongs.value.filter(s => s.song_id !== id)
+            showMessage('已从歌单移除', 'success')
+        }
         showConfirmWindow.value = false
         pendingDelete.value = null
     } catch (e) {
-        showMessage(e.message || '删除失败', 'error')
+        showMessage(e.message || '操作失败', 'error')
     }
+}
+
+function handleRemoveSong(songId) {
+    pendingDelete.value = { type: 'song', id: songId, msg: '确认从歌单移除此歌曲？' }
+    showConfirmWindow.value = true
 }
 </script>
 

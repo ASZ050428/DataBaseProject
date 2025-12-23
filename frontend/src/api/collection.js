@@ -143,3 +143,12 @@ export async function addSongToCollection(listId, songId) {
     })
     return handleResponse(res, '添加歌曲失败')
 }
+
+export async function removeSongFromCollection(listId, songId) {
+    const res = await fetch(`/api/collection/my/lists/${listId}/songs/${songId}/`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+    })
+    await handleResponse(res, '移除歌曲失败')
+    return true
+}

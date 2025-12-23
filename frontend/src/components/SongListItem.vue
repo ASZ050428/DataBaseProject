@@ -7,17 +7,24 @@
         </div>
         <div class="item-actions">
             <button class="action-btn btn-play" @click="$emit('play', song.audio_url)">▶ 播放</button>
-            <button class="action-btn btn-collect" @click="$emit('collect', song.song_id)">❤ 收藏</button>
+            <button v-if="showRemove" class="remove-btn" @click="$emit('collect', song.song_id)">💔</button>
+            <button v-else class="action-btn btn-collect" @click="$emit('collect', song.song_id)">❤ 收藏</button>
             <button class="action-btn btn-comment" @click="$emit('comment', song.song_id)">💬 评论</button>
         </div>
     </li>
 </template>
 
 <script setup>
+import { defineComponent } from 'vue'
+
 defineProps({
     song: {
         type: Object,
         required: true
+    },
+    showRemove: {
+        type: Boolean,
+        default: false
     }
 })
 
@@ -98,6 +105,20 @@ function formatDuration(seconds) {
 .btn-play:hover {
     background-color: #2563eb;
     color: white;
+}
+
+.remove-btn {
+    background: none;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    transition: background-color 0.3s;
+}
+
+.remove-btn:hover {
+    background-color: #ffebee;
 }
 
 .btn-collect {

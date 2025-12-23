@@ -10,7 +10,7 @@
                 <div class="fav-info" style="cursor: pointer">
                     <div class="fav-title">{{ album.title }}</div>
                 </div>
-                <button class="remove-btn" @click="removeAlbum(album.id)">💔</button>
+                <button class="remove-btn" @click.stop="removeAlbum(album.id)">💔</button>
             </li>
         </ul>
 

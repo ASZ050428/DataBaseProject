@@ -40,12 +40,15 @@ class LoginView(APIView):
         with connection.cursor() as cursor:
             cursor.execute("SELECT user_id, password FROM users WHERE username = %s", [username])
             row = cursor.fetchone()
-            if row:
-                user_id = row[0]
-                db_password = row[1]
-        
+
+        if not row or not row[0] or not row[1]:
+            return api_response(code=2, message='用户名或密码错误')
+
+        user_id = row[0]
+        db_password = row[1]
+
         # 验证密码
-        if not user_id or not check_password(password, db_password):
+        if not check_password(password, db_password):
             return api_response(code=2, message='用户名或密码错误')
 
         # 检查是否为创作者
@@ -84,7 +87,11 @@ class RegisterView(APIView):
                 return api_response(code=1, message='用户名和密码不能为空')
 
             with connection.cursor() as cursor:
-                # 允许重名
+                # 检查用户名是否已存在
+                cursor.execute("SELECT COUNT(*) FROM users WHERE username = %s", [username])
+                row = cursor.fetchone()
+                if row[0] > 0:
+                    return api_response(code=3, message='用户名已存在')
                 # 密码加密
                 hashed_password = make_password(password)
                 cursor.execute(
@@ -142,6 +149,12 @@ class MeView(APIView):
         new_username = request.data.get('username')
         if not new_username:
             return api_response(code=1, message='缺少用户名')
+        
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT COUNT(*) FROM users WHERE username = %s AND user_id != %s", [new_username, user_id])
+            row = cursor.fetchone()
+            if row[0] > 0:
+                return api_response(code=2, message='用户名已存在')
             
         with connection.cursor() as cursor:                
             cursor.execute("UPDATE users SET username = %s WHERE user_id = %s", [new_username, user_id])

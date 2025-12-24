@@ -37,14 +37,20 @@ const submit = async () => {
       username: identifier.value,
       password: password.value
     })
-    const tokens = resp?.data || resp
-    emit('success', {
-      username: identifier.value,
-      access: tokens.access,
-      refresh: tokens.refresh,
-      role: tokens.role,
-      userId: tokens.user_id
-    })
+    if (resp && resp.code === 0) {
+      const tokens = resp.data || resp
+      console.log('Login successful, tokens:', tokens)
+      emit('success', {
+        username: identifier.value,
+        access: tokens.access,
+        refresh: tokens.refresh,
+        role: tokens.role,
+        userId: tokens.user_id
+      })
+    } else {
+      error.value = resp?.message || '登录失败'
+      console.warn('Login failed:', resp)
+    }
   } catch (e) {
     error.value = e.message || '登录失败'
   } finally {

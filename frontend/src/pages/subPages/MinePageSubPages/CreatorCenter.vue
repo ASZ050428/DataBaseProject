@@ -188,7 +188,6 @@ const uploadForm = ref({
     duration: '',
     release_date: new Date().toISOString().split('T')[0],
     file: null,
-    cover_url: ''
 })
 const createAlbumForm = ref({
     name: '',
@@ -276,7 +275,6 @@ async function handleUploadSong() {
 
     const formData = new FormData()
     formData.append('title', uploadForm.value.title)
-    if (uploadForm.value.album_id) formData.append('album_id', uploadForm.value.album_id)
     formData.append('duration', uploadForm.value.duration)
     formData.append('release_date', uploadForm.value.release_date)
     formData.append('audio_file', uploadForm.value.file)

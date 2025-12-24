@@ -123,7 +123,6 @@ class MySongCreateView(APIView):
              return api_response(code=1, message='仅歌手可创建歌曲', data=None)
 
         title = request.data.get('title')
-        album_id = request.data.get('album_id')
         duration = request.data.get('duration')
         release_date = request.data.get('release_date')
         
@@ -148,17 +147,11 @@ class MySongCreateView(APIView):
         date = parse_date(release_date)
         if not date:
             return api_response(code=4, message='日期格式错误', data=None)
-        if album_id:
-            with connection.cursor() as cursor:
-                cursor.execute("SELECT 1 FROM album WHERE album_id=%s", [album_id])
-                albrow = cursor.fetchone()
-            if not albrow:
-                return api_response(code=5, message='专辑不存在', data=None)
         with connection.cursor() as cursor:
             cursor.execute(
                 "INSERT INTO song (title, artist_id, album_id, duration, release_date, audio_url) "
                 "VALUES (%s, %s, %s, %s, %s, %s)",
-                [title, artist_id, album_id, int(duration), str(date), audio_url],
+                [title, artist_id, None, int(duration), str(date), audio_url],
             )
             new_id = cursor.lastrowid
             if not new_id:

@@ -9,6 +9,7 @@
                 <h1>{{ album.album_name }}</h1>
                 <p class="meta">发行时间: {{ album.release_time }}</p>
                 <p class="meta">歌手: {{ album.artist_name }}</p>
+                <p class="meta">歌曲: {{ album.song_count || 0 }} 首</p>
             </div>
 
             <div class="section">

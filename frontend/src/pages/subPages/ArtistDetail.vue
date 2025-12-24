@@ -8,6 +8,7 @@
             <div class="header">
                 <h1>{{ artist.artist_name }}</h1>
                 <p class="region">地区: {{ artist.region || '未知' }}</p>
+                <p class="song-count" style="color: #666; margin-top: 5px;">热门歌曲: {{ artist.song_count || 0 }} 首</p>
                 <p class="bio">{{ artist.bio || '暂无简介' }}</p>
             </div>
 

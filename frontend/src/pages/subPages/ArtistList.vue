@@ -9,6 +9,9 @@
                 <div class="artist-info">
                     <h3>{{ artist.artist_name }}</h3>
                     <p class="region">地区: {{ artist.region || '未知' }}</p>
+                    <p class="song-count" style="font-size: 12px; color: #666; margin-bottom: 5px;">
+                        热门歌曲: {{ artist.song_count || 0 }} 首
+                    </p>
                     <p class="bio">{{ artist.bio || '暂无简介' }}</p>
                 </div>
                 <button class="action-btn btn-follow" @click.stop="handleFollowArtist(artist.artist_id || artist.id)">＋ 关注</button>
@@ -52,7 +55,6 @@ onMounted(async () => {
 <style scoped>
 .artist-list-page {
     padding: 20px;
-    background: #fff;
 }
 
 .artist-grid {

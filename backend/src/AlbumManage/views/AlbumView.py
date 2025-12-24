@@ -22,16 +22,30 @@ class AlbumViewSet(BaseReadOnlyViewSet):
     # 搜索专辑列表
     def list(self, request, *args, **kwargs):
         search = request.query_params.get('search')
-        sql = "SELECT album_id, album_name, release_time, artist_name FROM album JOIN artist ON album.album_artist_id = artist.artist_id"
+        sql = (
+            "SELECT album.album_id, album.album_name, album.release_time, artist.artist_name, "
+            "(SELECT COUNT(*) FROM song WHERE song.album_id = album.album_id) as song_count "
+            "FROM album "
+            "JOIN artist ON album.album_artist_id = artist.artist_id"
+        )
         params = []
         if search:
-            sql += " WHERE album_name LIKE %s"
+            sql += " WHERE album.album_name LIKE %s"
             params.append(f"%{search}%")
-        sql += " ORDER BY release_time DESC"
+        sql += " ORDER BY album.release_time DESC"
         with connection.cursor() as cursor:
             cursor.execute(sql, params)
             rows = cursor.fetchall()
-        data = [{ 'album_id': r[0], 'album_name': r[1], 'release_time': r[2], 'artist_name': r[3] } for r in rows]
+        data = [
+            { 
+                'album_id': r[0], 
+                'album_name': r[1], 
+                'release_time': r[2], 
+                'artist_name': r[3],
+                'song_count': r[4]
+            } 
+            for r in rows
+        ]
         return api_response(data=data)
     
     # 获取专辑详情
@@ -40,7 +54,9 @@ class AlbumViewSet(BaseReadOnlyViewSet):
         with connection.cursor() as cursor:
             # 获取专辑基本信息
             cursor.execute(
-                "SELECT album_id, album_name, release_time, album_artist_id FROM album WHERE album_id=%s",
+                "SELECT album_id, album_name, release_time, album_artist_id, "
+                "(SELECT COUNT(*) FROM song WHERE song.album_id = album.album_id) as song_count "
+                "FROM album WHERE album_id=%s",
                 [pk],
             )
             row = cursor.fetchone()
@@ -51,7 +67,8 @@ class AlbumViewSet(BaseReadOnlyViewSet):
                 'album_id': row[0], 
                 'album_name': row[1], 
                 'release_time': row[2], 
-                'singer_id': row[3] 
+                'singer_id': row[3],
+                'song_count': row[4]
             }
 
             # 获取专辑内的歌曲

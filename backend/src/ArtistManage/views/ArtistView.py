@@ -134,7 +134,11 @@ class ArtistViewSet(BaseReadOnlyViewSet):
     # 模糊搜索歌手列表
     def list(self, request, *args, **kwargs):
         search = request.query_params.get('search')
-        sql = "SELECT artist_id, artist_name, region, bio FROM artist"
+        sql = (
+            "SELECT artist_id, artist_name, region, bio, "
+            "(SELECT COUNT(*) FROM song WHERE song.artist_id = artist.artist_id) as song_count "
+            "FROM artist"
+        )
         params = []
         if search:
             sql += " WHERE artist_name LIKE %s"
@@ -150,7 +154,8 @@ class ArtistViewSet(BaseReadOnlyViewSet):
                 'artist_id': r[0],
                 'artist_name': r[1],
                 'region': r[2],
-                'bio': r[3]
+                'bio': r[3],
+                'song_count': r[4]
             }
             for r in rows
         ]
@@ -161,7 +166,12 @@ class ArtistViewSet(BaseReadOnlyViewSet):
         pk = kwargs.get('pk')
         with connection.cursor() as cursor:
             # 获取歌手基本信息
-            cursor.execute("SELECT artist_id, artist_name, region, bio FROM artist WHERE artist_id=%s", [pk])
+            cursor.execute(
+                "SELECT artist_id, artist_name, region, bio, "
+                "(SELECT COUNT(*) FROM song WHERE song.artist_id = artist.artist_id) as song_count "
+                "FROM artist WHERE artist_id=%s", 
+                [pk]
+            )
             row = cursor.fetchone()
             
             if not row:
@@ -172,7 +182,8 @@ class ArtistViewSet(BaseReadOnlyViewSet):
                 'artist_id': row[0],
                 'artist_name': row[1],
                 'region': row[2],
-                'bio': row[3]
+                'bio': row[3],
+                'song_count': row[4]
             }
 
             # 获取歌手的专辑

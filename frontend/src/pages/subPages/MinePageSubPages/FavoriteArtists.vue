@@ -8,7 +8,7 @@
         <ul v-else class="fav-list">
             <li v-for="artist in favoriteArtists" :key="artist.id" class="fav-item" @click="emit('select-artist', artist.id)">
                 <div class="fav-info" style="cursor: pointer" title="点击查看歌手详情">
-                    <div class="fav-title">{{ artist.title }}</div>
+                    <div class="fav-title">{{ artist.artist_name }}</div>
                     <div class="fav-time" style="font-size: 12px; color: #999;">关注于: {{ formatDate(artist.follow_time) }}</div>
                 </div>
                 <button class="remove-btn" @click.stop="removeArtist(artist.id)">💔</button>

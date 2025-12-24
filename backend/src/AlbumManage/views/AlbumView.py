@@ -18,6 +18,8 @@ class AlbumViewSet(BaseReadOnlyViewSet):
     serializer_class = AlbumSerializer
     filter_backends = [filters.SearchFilter]
     search_fields = ['=album_name']
+
+    # 搜索专辑列表
     def list(self, request, *args, **kwargs):
         search = request.query_params.get('search')
         sql = "SELECT album_id, album_name, release_time, artist_name FROM album JOIN artist ON album.album_artist_id = artist.artist_id"
@@ -31,10 +33,12 @@ class AlbumViewSet(BaseReadOnlyViewSet):
             rows = cursor.fetchall()
         data = [{ 'album_id': r[0], 'album_name': r[1], 'release_time': r[2], 'artist_name': r[3] } for r in rows]
         return api_response(data=data)
+    
+    # 获取专辑详情
     def retrieve(self, request, *args, **kwargs):
         pk = kwargs.get('pk')
         with connection.cursor() as cursor:
-            # 1. 获取专辑基本信息
+            # 获取专辑基本信息
             cursor.execute(
                 "SELECT album_id, album_name, release_time, album_artist_id FROM album WHERE album_id=%s",
                 [pk],
@@ -50,7 +54,7 @@ class AlbumViewSet(BaseReadOnlyViewSet):
                 'singer_id': row[3] 
             }
 
-            # 2. 获取专辑内的歌曲
+            # 获取专辑内的歌曲
             cursor.execute(
                 "SELECT song_id, title, duration, audio_url FROM song WHERE album_id=%s ORDER BY song_id ASC",
                 [pk]
@@ -65,7 +69,7 @@ class AlbumViewSet(BaseReadOnlyViewSet):
                 for r in cursor.fetchall()
             ]
 
-            # 3. 获取歌手名称
+            # 获取歌手名称
             cursor.execute(
                 "SELECT artist_name FROM artist WHERE artist_id=%s",
                 [album_info['singer_id']]
@@ -83,6 +87,8 @@ class AlbumViewSet(BaseReadOnlyViewSet):
 
 
 class MyAlbumListView(APIView):
+
+    # 获取本歌手的专辑列表
     @jwt_required
     def get(self, request):
         artist_id = None
@@ -112,8 +118,11 @@ class MyAlbumListView(APIView):
         return api_response(data=data)
 
 class MyAlbumCreateView(APIView):
+
+    # 歌手创建专辑
     @jwt_required
     def post(self, request):
+        # 验证是否为歌手
         is_artist = False
         with connection.cursor() as cursor:
             cursor.execute("SELECT 1 FROM user_become_artist WHERE user_id=%s", [request.user_id])
@@ -121,6 +130,8 @@ class MyAlbumCreateView(APIView):
                 is_artist = True
         if not is_artist:
             return api_response(code=1, message='仅歌手可创建专辑', data=None)
+        
+        # 获取参数并验证
         name = request.data.get('album_name')
         release_time = request.data.get('release_time')
         singer_id = request.data.get('singer_id')
@@ -134,6 +145,8 @@ class MyAlbumCreateView(APIView):
         date = parse_date(release_time)
         if not date:
             return api_response(code=4, message='日期格式错误', data=None)
+        
+        # 创建专辑
         with connection.cursor() as cursor:
             cursor.execute(
                 "INSERT INTO album (album_name, release_time, album_artist_id) VALUES (%s, %s, %s)",
@@ -150,8 +163,10 @@ class MyAlbumCreateView(APIView):
         return api_response(message='创建成功', data={'id': new_id, 'title': name})
 
 class MyAlbumDeleteView(APIView):
+    # 歌手删除专辑
     @jwt_required
     def delete(self, request, pk):
+        # 验证是否为歌手
         artist_id = None
         with connection.cursor() as cursor:
             cursor.execute("SELECT artist_id FROM user_become_artist WHERE user_id=%s", [request.user_id])
@@ -160,6 +175,8 @@ class MyAlbumDeleteView(APIView):
                 artist_id = row[0]
         if not artist_id:
             return api_response(code=1, message='仅歌手可操作', data=None)
+        
+        # 验证专辑归属并删除
         with connection.cursor() as cursor:
             cursor.execute("SELECT album_artist_id FROM album WHERE album_id=%s", [pk])
             row = cursor.fetchone()
@@ -169,6 +186,7 @@ class MyAlbumDeleteView(APIView):
                 return api_response(code=403, message='无权删除此专辑', data=None)
             try:
                 with transaction.atomic():
+                    # 此处有触发器，会进行级联删除
                     cursor.execute("DELETE FROM album WHERE album_id=%s", [pk])
             except IntegrityError as e:
                 return api_response(code=500, message=f'数据库错误: {str(e)}', data=None)

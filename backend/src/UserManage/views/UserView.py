@@ -24,8 +24,9 @@ def get_user_id_from_token(request):
         return None
 
 class LoginView(APIView):
-    permission_classes = [] # 允许匿名访问
+    permission_classes = []
 
+    # 登录接口
     def post(self, request):
         username = request.data.get('username')
         password = request.data.get('password')
@@ -78,6 +79,7 @@ class LoginView(APIView):
 class RegisterView(APIView):
     permission_classes = []
 
+    # 注册接口
     def post(self, request):
         try:
             username = request.data.get('username')
@@ -110,6 +112,7 @@ class RegisterView(APIView):
 class MeView(APIView):
     permission_classes = []
 
+    # 获取或更新当前用户信息
     def get(self, request):
         user_id = get_user_id_from_token(request)
         if not user_id:
@@ -141,6 +144,7 @@ class MeView(APIView):
             'artist_id': artist_id
         })
 
+    # 更新用户名
     def put(self, request):
         user_id = get_user_id_from_token(request)
         if not user_id:
@@ -165,6 +169,7 @@ class MeView(APIView):
 class ChangePasswordView(APIView):
     permission_classes = []
 
+    # 修改密码
     def post(self, request):
         user_id = get_user_id_from_token(request)
         if not user_id:

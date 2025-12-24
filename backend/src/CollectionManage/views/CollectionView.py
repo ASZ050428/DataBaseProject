@@ -1,113 +1,11 @@
-from rest_framework import viewsets, filters, serializers
 from rest_framework.views import APIView
-from CollectionManage.models import CollectionList, CollectionListSongInclude, UserAlbumCollect, UserArtistFollow, ArtistSongPublish
-from SongManage.models import Song
-from AlbumManage.models import Album
-from ArtistManage.models.Artist import Artist
-from common.views import BaseReadOnlyViewSet
 from utils.response import api_response
 from utils.jwt_required import jwt_required
 from django.db import connection, IntegrityError
 
-class CollectionListSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = CollectionList
-        fields = '__all__'
-
-class CollectionListViewSet(BaseReadOnlyViewSet):
-    queryset = CollectionList.objects.all()
-    serializer_class = CollectionListSerializer
-    filter_backends = [filters.SearchFilter]
-    search_fields = ['=list_name']
-
-class CollectionListSongIncludeSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = CollectionListSongInclude
-        fields = '__all__'
-
-class CollectionListSongIncludeViewSet(BaseReadOnlyViewSet):
-    queryset = CollectionListSongInclude.objects.all()
-    serializer_class = CollectionListSongIncludeSerializer
-
-class UserAlbumCollectSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = UserAlbumCollect
-        fields = '__all__'
-
-class UserAlbumCollectViewSet(BaseReadOnlyViewSet):
-    queryset = UserAlbumCollect.objects.all()
-    serializer_class = UserAlbumCollectSerializer
-
-class UserArtistFollowSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = UserArtistFollow
-        fields = '__all__'
-
-class UserArtistFollowViewSet(BaseReadOnlyViewSet):
-    queryset = UserArtistFollow.objects.all()
-    serializer_class = UserArtistFollowSerializer
-
-class ArtistSongPublishSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ArtistSongPublish
-        fields = '__all__'
-
-class ArtistSongPublishViewSet(BaseReadOnlyViewSet):
-    queryset = ArtistSongPublish.objects.none()
-    serializer_class = ArtistSongPublishSerializer
-    @jwt_required
-    def list(self, request, *args, **kwargs):
-        search = request.query_params.get('search')
-        artist_id = request.query_params.get('artist_id') or request.query_params.get('singer_id')
-        song_id = request.query_params.get('song_id')
-        where = []
-        params = []
-        if artist_id:
-            where.append("a.artist_id=%s")
-            params.append(artist_id)
-        if song_id:
-            where.append("s.song_id=%s")
-            params.append(song_id)
-        if search:
-            where.append("(a.artist_name LIKE %s OR s.title LIKE %s)")
-            like = f"%{search}%"
-            params.extend([like, like])
-        sql = (
-            "SELECT s.artist_id, a.artist_name, s.song_id, s.title FROM song s "
-            "JOIN artist a ON a.artist_id=s.artist_id "
-        )
-        if where:
-            sql += "WHERE " + " AND ".join(where) + " "
-        sql += "ORDER BY s.release_date DESC"
-        with connection.cursor() as cursor:
-            cursor.execute(sql, params)
-            rows = cursor.fetchall()
-        data = [
-            { 'singer_id': r[0], 'singer_name': r[1], 'song_id': r[2], 'song_title': r[3] }
-            for r in rows
-        ]
-        return api_response(data=data)
-    @jwt_required
-    def retrieve(self, request, *args, **kwargs):
-        artist_id = kwargs.get('pk')
-        song_id = request.query_params.get('song_id')
-        if not artist_id or not song_id:
-            return api_response(code=1, message='缺少参数', data=None)
-        with connection.cursor() as cursor:
-            cursor.execute(
-                "SELECT s.artist_id, a.artist_name, s.song_id, s.title FROM song s "
-                "JOIN artist s ON p.ARTIST_ID=s.artist_id "
-                "JOIN song g ON p.SONG_ID=g.song_id WHERE p.ARTIST_ID=%s AND p.SONG_ID=%s",
-                [artist_id, song_id],
-            )
-            row = cursor.fetchone()
-        if not row:
-            return api_response(code=2, message='未找到发布关系', data=None)
-        data = { 'singer_id': row[0], 'singer_name': row[1], 'song_id': row[2], 'song_title': row[3] }
-        return api_response(data=data)
-
-
 class MyCollectionListsView(APIView):
+
+    # 获取我的收藏列表
     @jwt_required
     def get(self, request):
         try:
@@ -131,12 +29,14 @@ class MyCollectionListsView(APIView):
         except Exception as e:
             return api_response(code=500, message=f'数据库连接失败: {str(e)}', data=None, status_code=500)
 
+    # 创建新的收藏列表
     @jwt_required
     def post(self, request):
         try:
             name = request.data.get('name') or request.data.get('list_name')
             if not name:
                 return api_response(code=1, message='缺少列表名称', data=None)
+            # 插入新的收藏列表
             with connection.cursor() as cursor:
                 cursor.execute(
                     "INSERT INTO user_favourite_songs_list (LIST_NAME, CREATE_TIME) VALUES (%s, CURRENT_TIMESTAMP)",
@@ -150,6 +50,7 @@ class MyCollectionListsView(APIView):
                     )
                     row = cursor.fetchone()
                     new_id = row[0] if row else None
+            # 关联用户和新创建的列表
             if new_id:
                 with connection.cursor() as cursor:
                     cursor.execute(
@@ -162,6 +63,8 @@ class MyCollectionListsView(APIView):
 
 
 class MyCollectionListDeleteView(APIView):
+
+    # 删除我的收藏列表
     @jwt_required
     def delete(self, request, list_id: int):
         with connection.cursor() as cursor:
@@ -173,32 +76,14 @@ class MyCollectionListDeleteView(APIView):
         if not row:
             return api_response(code=2, message='未找到列表', data=None)
         with connection.cursor() as cursor:
-            cursor.execute("DELETE FROM user_song_list_relation WHERE LIST_ID=%s", [list_id])
-            cursor.execute("DELETE FROM user_list_relation WHERE LIST_ID=%s AND USER_ID=%s", [list_id, request.user_id])
+            # 此处添加了触发器，会自动删除关联数据
             cursor.execute("DELETE FROM user_favourite_songs_list WHERE LIST_ID=%s", [list_id])
         return api_response(message='删除成功', data=None)
-    @jwt_required
-    def patch(self, request, list_id: int):
-        with connection.cursor() as cursor:
-            cursor.execute(
-                "SELECT 1 FROM user_list_relation WHERE LIST_ID=%s AND USER_ID=%s",
-                [list_id, request.user_id],
-            )
-            row = cursor.fetchone()
-        if not row:
-            return api_response(code=2, message='未找到列表', data=None)
-        name = request.data.get('name') or request.data.get('list_name')
-        if not name:
-            return api_response(code=1, message='缺少列表名称', data=None)
-        with connection.cursor() as cursor:
-            cursor.execute(
-                "UPDATE user_favourite_songs_list SET LIST_NAME=%s WHERE LIST_ID=%s",
-                [name, list_id],
-            )
-        return api_response(message='重命名成功', data={'id': list_id, 'title': name})
 
 
 class MyCollectionListSongsView(APIView):
+
+    # 获取收藏列表中的歌曲
     @jwt_required
     def get(self, request, list_id: int):
         try:
@@ -236,6 +121,8 @@ class MyCollectionListSongsView(APIView):
             return api_response(data=data)
         except Exception as e:
             return api_response(code=500, message=f'数据库连接失败: {str(e)}', data=None, status_code=500)
+        
+    # 向收藏列表中添加歌曲
     @jwt_required
     def post(self, request, list_id: int):
         try:
@@ -278,6 +165,8 @@ class MyCollectionListSongsView(APIView):
 
 
 class MyCollectionListSongDeleteView(APIView):
+
+    # 从收藏列表中删除歌曲
     @jwt_required
     def delete(self, request, list_id: int, song_id: int):
         with connection.cursor() as cursor:
@@ -300,6 +189,8 @@ class MyCollectionListSongDeleteView(APIView):
 
 
 class MyAlbumCollectView(APIView):
+
+    # 获取我收藏的专辑
     @jwt_required
     def get(self, request):
         with connection.cursor() as cursor:
@@ -317,6 +208,8 @@ class MyAlbumCollectView(APIView):
             for r in rows
         ]
         return api_response(data=data)
+    
+    # 收藏专辑
     @jwt_required
     def post(self, request):
         album_id = request.data.get('album_id')
@@ -342,6 +235,8 @@ class MyAlbumCollectView(APIView):
 
 
 class MyAlbumCollectDeleteView(APIView):
+
+    # 取消收藏专辑
     @jwt_required
     def delete(self, request, album_id: int):
         with connection.cursor() as cursor:
@@ -356,6 +251,8 @@ class MyAlbumCollectDeleteView(APIView):
 
 
 class MyArtistFollowView(APIView):
+
+    # 获取我关注的歌手
     @jwt_required
     def get(self, request):
         with connection.cursor() as cursor:
@@ -367,12 +264,14 @@ class MyArtistFollowView(APIView):
         data = [
             {
                 'id': r[0], 
-                'title': r[1], 
+                'artist_name': r[1], 
                 'follow_time': r[2].strftime('%Y-%m-%d %H:%M:%S') if r[2] else None
             } 
             for r in rows
         ]
         return api_response(data=data)
+    
+    # 关注歌手
     @jwt_required
     def post(self, request):
         artist_id = request.data.get('artist_id') or request.data.get('singer_id')
@@ -398,6 +297,8 @@ class MyArtistFollowView(APIView):
 
 
 class MyArtistFollowDeleteView(APIView):
+
+    # 取消关注歌手
     @jwt_required
     def delete(self, request, artist_id: int):
         with connection.cursor() as cursor:

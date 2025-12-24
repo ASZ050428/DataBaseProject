@@ -21,20 +21,8 @@ class CommentViewSet(BaseReadOnlyViewSet):
 
 
 class MyCommentView(APIView):
-    @jwt_required
-    def get(self, request):
-        song_id = request.query_params.get('song_id')
-        sql = "SELECT comment_id, song_id, content, create_time FROM comment WHERE user_id=%s"
-        params = [request.user_id]
-        if song_id:
-            sql += " AND song_id=%s"
-            params.append(song_id)
-        sql += " ORDER BY create_time DESC"
-        with connection.cursor() as cursor:
-            cursor.execute(sql, params)
-            rows = cursor.fetchall()
-        data = [{ 'id': r[0], 'song_id': r[1], 'content': r[2], 'create_time': r[3] } for r in rows]
-        return api_response(data=data)
+
+    # 发表新评论
     @jwt_required
     def post(self, request):
         song_id = request.data.get('song_id')
@@ -60,7 +48,8 @@ class MyCommentView(APIView):
 
 
 class SongCommentsView(APIView):
-    permission_classes = []
+
+    # 获取某首歌的评论列表
     def get(self, request ,song_id):
         with connection.cursor() as cursor:
             # 使用 JOIN 直接查询 username
@@ -81,6 +70,8 @@ class SongCommentsView(APIView):
 
 
 class MyCommentDeleteView(APIView):
+
+    # 删除自己的评论
     @jwt_required
     def delete(self, request, comment_id: int):
         with connection.cursor() as cursor:

@@ -8,23 +8,13 @@ import os
 from SongManage.models import Song
 from common.views import BaseReadOnlyViewSet
 from utils.response import api_response
-from ArtistManage.models import Artist
-from AlbumManage.models import Album
 from django.utils.dateparse import parse_date
 from django.db import connection, transaction, IntegrityError
 from utils.jwt_required import jwt_required
 
-
-class SongSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Song
-        fields = '__all__'
-
 class SongViewSet(BaseReadOnlyViewSet):
-    queryset = Song.objects.none()
-    serializer_class = SongSerializer
-    filter_backends = [filters.SearchFilter]
-    search_fields = ['=title']
+    
+    # 模糊搜索歌曲
     def list(self, request, *args, **kwargs):
         search = request.query_params.get('search')
         sql = (
@@ -57,6 +47,8 @@ class SongViewSet(BaseReadOnlyViewSet):
 
 
 class MySongListView(APIView):
+
+    # 获取当前用户作为歌手发布的歌曲列表
     @jwt_required
     def get(self, request):
         artist_id = None
@@ -106,6 +98,7 @@ class MySongListView(APIView):
 class MySongCreateView(APIView):
     parser_classes = [MultiPartParser, FormParser]
 
+    # 发布歌曲
     @jwt_required
     def post(self, request):
         # 检查用户是否是歌手 (通过 user_become_artist 表)
@@ -164,6 +157,8 @@ class MySongCreateView(APIView):
         return api_response(message='创建成功', data={'id': new_id, 'title': title, 'url': audio_url})
 
 class MySongUpdateView(APIView):
+
+    # 更新歌曲信息 (目前主要是修改所属专辑)
     @jwt_required
     def patch(self, request, pk):
         artist_id = None
@@ -190,9 +185,6 @@ class MySongUpdateView(APIView):
         # 更新字段 (目前主要支持 album_id)
         album_id = request.data.get('album_id')
         # 注意: album_id 可能为 None (移出专辑)
-        # request.data.get('album_id') 如果 key 不存在是 None，如果 key 存在且值为 null 也是 None (在 DRF/JSON 中)
-        # 为了区分 "不更新" 和 "更新为 None"，我们可以检查 key 是否存在
-        
         has_album_change = 'album_id' in request.data
         
         if has_album_change:
@@ -215,6 +207,8 @@ class MySongUpdateView(APIView):
         return api_response(message='更新成功', data=None)
 
 class MySongDeleteView(APIView):
+
+    # 删除自己发布的歌曲
     @jwt_required
     def delete(self, request, pk):
         artist_id = None
@@ -239,10 +233,7 @@ class MySongDeleteView(APIView):
             
             try:
                 with transaction.atomic():
-                    # 1. 删除关联的收藏记录 (user_song_list_relation)
-                    cursor.execute("DELETE FROM user_song_list_relation WHERE SONG_ID=%s", [pk])
-                    
-                    # 2. 删除歌曲本身
+                    # 此处设有触发器，会自动删除相关收藏记录以及评论
                     cursor.execute("DELETE FROM song WHERE song_id=%s", [pk])
             except IntegrityError as e:
                 return api_response(code=500, message=f'数据库完整性错误: {str(e)}', data=None)

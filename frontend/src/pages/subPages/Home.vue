@@ -57,12 +57,12 @@
                 <h3>歌手</h3>
                 <div v-if="artists.length === 0" class="empty-tip">未找到相关歌手</div>
                 <ul v-else class="result-list">
-                    <li v-for="artist in artists" :key="artist.id" class="result-item">
+                    <li v-for="artist in artists" :key="artist.id" class="result-item" @click="$emit('select-artist', artist.id)">
                         <div class="item-info">
                             <div class="item-title">{{ artist.artist_name }}</div>
                             <div class="item-sub">地区: {{ artist.region }}</div>
                         </div>
-                        <button class="action-btn btn-follow" @click="handleFollowArtist(artist.artist_id)">＋ 关注</button>
+                        <button class="action-btn btn-follow" @click.stop="handleFollowArtist(artist.artist_id)">＋ 关注</button>
                     </li>
                 </ul>
             </div>
@@ -125,7 +125,7 @@ import {
 } from '../../api/collection'
 import { getSongComments, postComment } from '../../api/comment'
 
-const emit = defineEmits(['play', 'select-album'])
+const emit = defineEmits(['play', 'select-album', 'select-artist'])
 
 const query = ref('')
 const songs = ref([])

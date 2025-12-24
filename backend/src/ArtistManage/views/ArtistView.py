@@ -1,6 +1,5 @@
 from rest_framework import generics, permissions,viewsets, filters
-from django.contrib.auth.models import User
-from UserManage.serializers.UserSerializer import UserSerializer, RegisterSerializer
+from UserManage.serializers.UserSerializer import UserSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -14,20 +13,13 @@ from common.views import (
 from django.db import connection
 from utils.jwt_required import jwt_required
 
-# 复用基类的JWT令牌视图，无需重复实现
-class CustomTokenObtainPairView(BaseTokenObtainPairView):
-    pass
-
-# 复用基类的注册逻辑，仅保留 Artist 模块相关配置
-class RegisterView(BaseRegisterView):
-    queryset = User.objects.all()
-    serializer_class = RegisterSerializer
 
 # 普通用户升级为歌手视图
 class UpgradeArtistView(APIView):
-    """普通用户升级为歌手"""
+    # 用户升级为歌手
     @jwt_required
     def post(self, request):
+        # 获取新创建的歌手名
         user_id = request.user_id
         name = request.data.get('name')
         if not name:
@@ -37,31 +29,52 @@ class UpgradeArtistView(APIView):
                 row = cursor.fetchone()
                 if row:
                     name = row[0]
+
+        # 检查用户是否已是歌手
         with connection.cursor() as cursor:
             cursor.execute("SELECT 1 FROM user_become_artist WHERE user_id=%s", [user_id])
             if cursor.fetchone():
                 return api_response(code=0, message='用户已是歌手', data={'user_id': user_id})
-        artist, created = Artist.objects.get_or_create(artist_name=name)
+        # 创建新歌手记录
         with connection.cursor() as cursor:
+            # 检查歌手名是否已存在
+            cursor.execute(
+                "SELECT 1 FROM artist WHERE artist_name=%s", [name]
+            )
+            if cursor.fetchone():
+                return api_response(code=1, message='歌手名称已存在', data=None)
+            
+            # 创建歌手
+            cursor.execute(
+                "INSERT INTO artist (artist_name) VALUES (%s)",
+                [name]
+            )
+            artist_id = cursor.lastrowid
+            if not artist_id:
+                cursor.execute(
+                    "SELECT artist_id FROM artist WHERE artist_name=%s",
+                    [name]
+                )
+                row = cursor.fetchone()
+                artist_id = row[0] if row else None
+
+            # 关联用户与歌手
             cursor.execute(
                 "INSERT INTO user_become_artist (user_id, artist_id) VALUES (%s, %s)",
-                [user_id, artist.artist_id]
+                [user_id, artist_id]
             )
-        return api_response(code=0, message='升级成功', data={'user_id': user_id, 'artist_id': artist.artist_id, 'name': name})
-
-    def partial_update(self, request, *args, **kwargs):
-        kwargs['partial'] = True
-        return super().update(request, *args, **kwargs)  # 复用update逻辑
+        return api_response(code=0, message='升级成功', data={'user_id': user_id, 'artist_id': artist_id, 'name': name})
 
 class ArtistProfileView(APIView):
-    """歌手个人信息管理"""
-
+    
+    # 获取用户对应的歌手ID
     def get_artist_id(self, user_id):
         with connection.cursor() as cursor:
             cursor.execute("SELECT artist_id FROM user_become_artist WHERE user_id=%s", [user_id])
             row = cursor.fetchone()
             return row[0] if row else None
 
+    # 获取歌手信息
     @jwt_required
     def get(self, request):
         try:
@@ -84,6 +97,7 @@ class ArtistProfileView(APIView):
         except Exception as e:
             return api_response(code=500, message=f'数据库连接失败: {str(e)}', data=None, status_code=500)
 
+    # 更新歌手信息
     @jwt_required
     def put(self, request):
         artist_id = self.get_artist_id(request.user_id)
@@ -98,6 +112,15 @@ class ArtistProfileView(APIView):
              return api_response(code=1, message='歌手名称不能为空')
 
         with connection.cursor() as cursor:
+            # 检查歌手名称是否已被其他歌手使用
+            cursor.execute(
+                "SELECT 1 FROM artist WHERE artist_name=%s AND artist_id!=%s",
+                [name, artist_id]
+            )
+            if cursor.fetchone():
+                return api_response(code=2, message='歌手名称已存在')
+            
+            # 更新歌手信息
             cursor.execute(
                 "UPDATE artist SET artist_name=%s, region=%s, bio=%s WHERE artist_id=%s",
                 [name, region, bio, artist_id]
@@ -105,34 +128,10 @@ class ArtistProfileView(APIView):
         
         return api_response(message='更新成功')
 
-# 注销视图：保持简洁，仅返回艺术家相关提示
-class LogoutView(APIView):
-    @jwt_required
-    def post(self, request):
-        return Response({
-            "code": 0,
-            "data": None,
-            "message": "艺术家家账号已注销"
-        })
 
-# 验证码视图：保留基础逻辑，可根据艺术家模块需求扩展
-class CodeView(APIView):
-    @jwt_required
-    def get(self, request):
-        # 此处可添加艺术家专属验证码逻辑（如身份验证等）
-        return Response({
-            "code": 0,
-            "data": [],
-            "message": "艺术家验证码获取成功"
-        })
+class ArtistViewSet(BaseReadOnlyViewSet):
 
-# 艺术家视图集：继承只读基类，专注于艺术家相关用户查询
-class ArtistViewSet(BaseReadOnlyViewSet):  # 类名更贴合模块功能
-    queryset = Artist.objects.none()
-    serializer_class = UserSerializer # 这里可能需要一个 ArtistSerializer，但暂时先不管
-    filter_backends = [filters.SearchFilter]
-    search_fields = ['=name']
-
+    # 模糊搜索歌手列表
     def list(self, request, *args, **kwargs):
         search = request.query_params.get('search')
         sql = "SELECT artist_id, artist_name, region, bio FROM artist"
@@ -157,11 +156,11 @@ class ArtistViewSet(BaseReadOnlyViewSet):  # 类名更贴合模块功能
         ]
         return api_response(data=data)
 
-    # 复写retrieve方法，确保保返回艺术家详情
+    # 获取歌手详情
     def retrieve(self, request, *args, **kwargs):
         pk = kwargs.get('pk')
         with connection.cursor() as cursor:
-            # 1. 获取歌手基本信息
+            # 获取歌手基本信息
             cursor.execute("SELECT artist_id, artist_name, region, bio FROM artist WHERE artist_id=%s", [pk])
             row = cursor.fetchone()
             
@@ -176,7 +175,7 @@ class ArtistViewSet(BaseReadOnlyViewSet):  # 类名更贴合模块功能
                 'bio': row[3]
             }
 
-            # 2. 获取歌手的专辑
+            # 获取歌手的专辑
             cursor.execute(
                 "SELECT album_id, album_name, release_time FROM album WHERE album_artist_id=%s ORDER BY release_time DESC",
                 [pk]
@@ -186,7 +185,7 @@ class ArtistViewSet(BaseReadOnlyViewSet):  # 类名更贴合模块功能
                 for r in cursor.fetchall()
             ]
 
-            # 3. 获取歌手的歌曲
+            # 获取歌手的歌曲
             cursor.execute(
                 "SELECT song_id, title, duration, release_date, audio_url FROM song WHERE artist_id=%s ORDER BY release_date DESC",
                 [pk]

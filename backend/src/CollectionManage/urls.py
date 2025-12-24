@@ -1,11 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views.CollectionView import (
-    CollectionListViewSet,
-    CollectionListSongIncludeViewSet,
-    UserAlbumCollectViewSet,
-    UserArtistFollowViewSet,
-    ArtistSongPublishViewSet,
     MyCollectionListsView,
     MyCollectionListDeleteView,
     MyCollectionListSongsView,
@@ -17,11 +12,6 @@ from .views.CollectionView import (
 )
 
 router = DefaultRouter()
-router.register(r'list', CollectionListViewSet, basename='collection-list')
-router.register(r'list-song', CollectionListSongIncludeViewSet, basename='collection-list-song')
-router.register(r'user-album', UserAlbumCollectViewSet, basename='user-album-collect')
-router.register(r'user-artist', UserArtistFollowViewSet, basename='user-artist-follow')
-router.register(r'artist-song', ArtistSongPublishViewSet, basename='artist-song-publish')
 
 urlpatterns = [
     path('', include(router.urls)),

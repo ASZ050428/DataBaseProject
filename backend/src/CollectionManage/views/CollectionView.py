@@ -63,23 +63,22 @@ class ArtistSongPublishViewSet(BaseReadOnlyViewSet):
         where = []
         params = []
         if artist_id:
-            where.append("p.ARTIST_ID=%s")
+            where.append("a.artist_id=%s")
             params.append(artist_id)
         if song_id:
-            where.append("p.SONG_ID=%s")
+            where.append("s.song_id=%s")
             params.append(song_id)
         if search:
-            where.append("(s.artist_name LIKE %s OR g.title LIKE %s)")
+            where.append("(a.artist_name LIKE %s OR s.title LIKE %s)")
             like = f"%{search}%"
             params.extend([like, like])
         sql = (
-            "SELECT p.ARTIST_ID, s.artist_name, p.SONG_ID, g.title FROM artist_song_relation p "
-            "JOIN artist s ON p.ARTIST_ID=s.artist_id "
-            "JOIN song g ON p.SONG_ID=g.song_id "
+            "SELECT s.artist_id, a.artist_name, s.song_id, s.title FROM song s "
+            "JOIN artist a ON a.artist_id=s.artist_id "
         )
         if where:
             sql += "WHERE " + " AND ".join(where) + " "
-        sql += "ORDER BY g.release_date DESC"
+        sql += "ORDER BY s.release_date DESC"
         with connection.cursor() as cursor:
             cursor.execute(sql, params)
             rows = cursor.fetchall()
@@ -96,7 +95,7 @@ class ArtistSongPublishViewSet(BaseReadOnlyViewSet):
             return api_response(code=1, message='缺少参数', data=None)
         with connection.cursor() as cursor:
             cursor.execute(
-                "SELECT p.ARTIST_ID, s.artist_name, p.SONG_ID, g.title FROM artist_song_relation p "
+                "SELECT s.artist_id, a.artist_name, s.song_id, s.title FROM song s "
                 "JOIN artist s ON p.ARTIST_ID=s.artist_id "
                 "JOIN song g ON p.SONG_ID=g.song_id WHERE p.ARTIST_ID=%s AND p.SONG_ID=%s",
                 [artist_id, song_id],
@@ -410,51 +409,3 @@ class MyArtistFollowDeleteView(APIView):
         if affected == 0:
             return api_response(code=2, message='未找到关注', data=None)
         return api_response(message='取消成功', data=None)
-
-
-class MyPublishSongLinkView(APIView):
-    """创建歌手-歌曲发布关系"""
-    @jwt_required
-    def post(self, request):
-        role = getattr(getattr(request.user, 'profile', None), 'roles', '')
-        if role != 'artist':
-            return api_response(code=1, message='仅歌手可发布', data=None)
-        artist_id = request.data.get('artist_id') or request.data.get('singer_id')
-        song_id = request.data.get('song_id')
-        if not artist_id or not song_id:
-            return api_response(code=2, message='缺少参数', data=None)
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT 1 FROM artist WHERE artist_id=%s", [artist_id])
-            srow = cursor.fetchone()
-            cursor.execute("SELECT title FROM song WHERE song_id=%s", [song_id])
-            grow = cursor.fetchone()
-        if not srow or not grow:
-            return api_response(code=3, message='歌手或歌曲不存在', data=None)
-        try:
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    "INSERT INTO artist_song_relation (ARTIST_ID, SONG_ID) VALUES (%s, %s)",
-                    [artist_id, song_id],
-                )
-        except IntegrityError:
-            pass
-        return api_response(message='发布关系创建成功', data={'singer_id': int(artist_id), 'song_id': int(song_id), 'song_title': grow[0]})
-
-    @jwt_required
-    def delete(self, request):
-        role = getattr(getattr(request.user, 'profile', None), 'roles', '')
-        if role != 'artist':
-            return api_response(code=1, message='仅歌手可取消发布', data=None)
-        artist_id = request.data.get('artist_id') or request.query_params.get('artist_id') or request.data.get('singer_id') or request.query_params.get('singer_id')
-        song_id = request.data.get('song_id') or request.query_params.get('song_id')
-        if not artist_id or not song_id:
-            return api_response(code=2, message='缺少参数', data=None)
-        with connection.cursor() as cursor:
-            cursor.execute(
-                "DELETE FROM artist_song_relation WHERE ARTIST_ID=%s AND SONG_ID=%s",
-                [artist_id, song_id],
-            )
-            affected = cursor.rowcount
-        if affected == 0:
-            return api_response(code=3, message='未找到发布关系', data=None)
-        return api_response(message='取消发布成功', data={'singer_id': int(artist_id), 'song_id': int(song_id)})

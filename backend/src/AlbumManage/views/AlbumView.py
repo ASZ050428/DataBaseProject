@@ -169,8 +169,6 @@ class MyAlbumDeleteView(APIView):
                 return api_response(code=403, message='无权删除此专辑', data=None)
             try:
                 with transaction.atomic():
-                    cursor.execute("DELETE FROM user_favourite_albums WHERE ALBUM_ID=%s", [pk])
-                    cursor.execute("UPDATE song SET album_id=NULL WHERE album_id=%s", [pk])
                     cursor.execute("DELETE FROM album WHERE album_id=%s", [pk])
             except IntegrityError as e:
                 return api_response(code=500, message=f'数据库错误: {str(e)}', data=None)

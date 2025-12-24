@@ -14,7 +14,6 @@ from .views.CollectionView import (
     MyAlbumCollectDeleteView,
     MyArtistFollowView,
     MyArtistFollowDeleteView,
-    MyPublishSongLinkView,
 )
 
 router = DefaultRouter()
@@ -34,5 +33,4 @@ urlpatterns = [
     path('my/albums/<int:album_id>/', MyAlbumCollectDeleteView.as_view(), name='my-album-collect-delete'),
     path('my/artists/', MyArtistFollowView.as_view(), name='my-artist-follow'),
     path('my/artists/<int:artist_id>/', MyArtistFollowDeleteView.as_view(), name='my-artist-follow-delete'),
-    path('my/publish-song/', MyPublishSongLinkView.as_view(), name='my-publish-song-link'),
 ]

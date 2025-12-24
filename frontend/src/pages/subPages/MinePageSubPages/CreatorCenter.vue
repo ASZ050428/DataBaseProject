@@ -87,14 +87,6 @@
                     <label>发布日期</label>
                     <input type="date" v-model="uploadForm.release_date" class="modal-input" />
                 </div>
-                <div class="form-group">
-                    <label>专辑ID (可选)</label>
-                    <input v-model="uploadForm.album_id" placeholder="请输入专辑ID" class="modal-input" />
-                </div>
-                <div class="form-group">
-                    <label>封面URL (可选)</label>
-                    <input v-model="uploadForm.cover_url" placeholder="请输入封面图片URL" class="modal-input" />
-                </div>
                 <div class="modal-actions">
                     <button @click="handleUploadSong" class="confirm-btn">确认上传</button>
                     <button @click="showUploadModal = false" class="cancel-btn">取消</button>
@@ -288,7 +280,6 @@ async function handleUploadSong() {
     formData.append('duration', uploadForm.value.duration)
     formData.append('release_date', uploadForm.value.release_date)
     formData.append('audio_file', uploadForm.value.file)
-    if (uploadForm.value.cover_url) formData.append('cover_url', uploadForm.value.cover_url)
 
     try {
         await uploadSong(formData)
@@ -299,8 +290,6 @@ async function handleUploadSong() {
             album_id: '',
             duration: '',
             release_date: new Date().toISOString().split('T')[0],
-            file: null,
-            cover_url: ''
         }
         loadCreatorData()
     } catch (e) {

@@ -12,6 +12,8 @@ from ArtistManage.models import Artist
 from AlbumManage.models import Album
 from django.utils.dateparse import parse_date
 from django.db import connection, transaction, IntegrityError
+from utils.jwt_required import jwt_required
+
 
 class SongSerializer(serializers.ModelSerializer):
     class Meta:
@@ -55,11 +57,11 @@ class SongViewSet(BaseReadOnlyViewSet):
 
 
 class MySongListView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    @jwt_required
     def get(self, request):
         artist_id = None
         with connection.cursor() as cursor:
-            cursor.execute("SELECT artist_id FROM user_become_artist WHERE user_id=%s", [request.user.id])
+            cursor.execute("SELECT artist_id FROM user_become_artist WHERE user_id=%s", [request.user_id])
             row = cursor.fetchone()
             if row:
                 artist_id = row[0]
@@ -102,16 +104,16 @@ class MySongListView(APIView):
 
 
 class MySongCreateView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser]
 
+    @jwt_required
     def post(self, request):
         # 检查用户是否是歌手 (通过 user_become_artist 表)
         artist_id = None
         with connection.cursor() as cursor:
             cursor.execute(
                 "SELECT artist_id FROM user_become_artist WHERE user_id=%s", 
-                [request.user.id]
+                [request.user_id]
             )
             row = cursor.fetchone()
             if row:
@@ -169,13 +171,13 @@ class MySongCreateView(APIView):
         return api_response(message='创建成功', data={'id': new_id, 'title': title, 'url': audio_url})
 
 class MySongUpdateView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    @jwt_required
     def patch(self, request, pk):
         artist_id = None
         with connection.cursor() as cursor:
             cursor.execute(
                 "SELECT artist_id FROM user_become_artist WHERE user_id=%s", 
-                [request.user.id]
+                [request.user_id]
             )
             row = cursor.fetchone()
             if row:
@@ -220,13 +222,13 @@ class MySongUpdateView(APIView):
         return api_response(message='更新成功', data=None)
 
 class MySongDeleteView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    @jwt_required
     def delete(self, request, pk):
         artist_id = None
         with connection.cursor() as cursor:
             cursor.execute(
                 "SELECT artist_id FROM user_become_artist WHERE user_id=%s", 
-                [request.user.id]
+                [request.user_id]
             )
             row = cursor.fetchone()
             if row:

@@ -3,15 +3,11 @@ from django.contrib.auth.models import User
 from CollectionManage.models import CollectionList
 
 class UserListRelation(models.Model):
-    user_id = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
+    user_id = models.IntegerField(
         db_column="USER_ID",
         verbose_name="用户ID"
     )
-    list_id = models.ForeignKey(
-        CollectionList,
-        on_delete=models.CASCADE,
+    list_id = models.IntegerField(
         db_column="LIST_ID",
         verbose_name="表ID"
     )

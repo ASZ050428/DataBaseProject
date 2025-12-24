@@ -1,18 +1,12 @@
 from django.db import models
 from django.utils import timezone
-from CollectionManage.models import CollectionList
-from SongManage.models import Song
 
 class CollectionListSongInclude(models.Model):
-    list_id = models.ForeignKey(
-        CollectionList, 
-        on_delete=models.CASCADE, 
+    list_id = models.IntegerField(
         db_column="LIST_ID",
         verbose_name="表ID"
     )
-    song_id = models.ForeignKey(
-        Song, 
-        on_delete=models.CASCADE, 
+    song_id = models.IntegerField(
         db_column="SONG_ID",
         verbose_name="歌曲ID"
     )

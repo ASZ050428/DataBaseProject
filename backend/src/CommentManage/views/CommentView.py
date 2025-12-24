@@ -6,6 +6,7 @@ from common.views import BaseReadOnlyViewSet
 from utils.response import api_response
 from django.contrib.auth.models import User
 from django.db import connection
+from utils.jwt_required import jwt_required
 
 class CommentSerializer(serializers.ModelSerializer):
     class Meta:
@@ -20,11 +21,11 @@ class CommentViewSet(BaseReadOnlyViewSet):
 
 
 class MyCommentView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    @jwt_required
     def get(self, request):
         song_id = request.query_params.get('song_id')
         sql = "SELECT comment_id, song_id, content, create_time FROM comment WHERE user_id=%s"
-        params = [request.user.id]
+        params = [request.user_id]
         if song_id:
             sql += " AND song_id=%s"
             params.append(song_id)
@@ -34,10 +35,11 @@ class MyCommentView(APIView):
             rows = cursor.fetchall()
         data = [{ 'id': r[0], 'song_id': r[1], 'content': r[2], 'create_time': r[3] } for r in rows]
         return api_response(data=data)
+    @jwt_required
     def post(self, request):
         song_id = request.data.get('song_id')
         content = request.data.get('content')
-        user_id = request.user.id
+        user_id = request.user_id
 
         if not song_id or not content:
             return api_response(code=1, message='缺少参数', data=None)
@@ -79,12 +81,12 @@ class SongCommentsView(APIView):
 
 
 class MyCommentDeleteView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    @jwt_required
     def delete(self, request, comment_id: int):
         with connection.cursor() as cursor:
             cursor.execute(
                 "DELETE FROM comment WHERE comment_id=%s AND user_id=%s",
-                [comment_id, request.user.id],
+                [comment_id, request.user_id],
             )
             affected = cursor.rowcount
         if affected == 0:

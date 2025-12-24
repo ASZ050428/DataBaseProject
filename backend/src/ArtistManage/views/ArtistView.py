@@ -12,6 +12,7 @@ from common.views import (
     BaseReadOnlyViewSet
 )
 from django.db import connection
+from utils.jwt_required import jwt_required
 
 # 复用基类的JWT令牌视图，无需重复实现
 class CustomTokenObtainPairView(BaseTokenObtainPairView):
@@ -25,28 +26,28 @@ class RegisterView(BaseRegisterView):
 # 普通用户升级为歌手视图
 class UpgradeArtistView(APIView):
     """普通用户升级为歌手"""
-    permission_classes = [permissions.IsAuthenticated]
+    @jwt_required
     def post(self, request):
-        user = request.user
-        name = request.data.get('name') or user.username
-        
-        # 检查是否已经是歌手 (SQL)
+        user_id = request.user_id
+        name = request.data.get('name')
+        if not name:
+            name = None
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT username FROM users WHERE user_id=%s", [user_id])
+                row = cursor.fetchone()
+                if row:
+                    name = row[0]
         with connection.cursor() as cursor:
-            cursor.execute("SELECT 1 FROM user_become_artist WHERE user_id=%s", [user.id])
+            cursor.execute("SELECT 1 FROM user_become_artist WHERE user_id=%s", [user_id])
             if cursor.fetchone():
-                return api_response(code=0, message='用户已是歌手', data={'user_id': user.id})
-            
-        # 获取或创建 Artist
+                return api_response(code=0, message='用户已是歌手', data={'user_id': user_id})
         artist, created = Artist.objects.get_or_create(artist_name=name)
-        
-        # 创建关联 (SQL)
         with connection.cursor() as cursor:
             cursor.execute(
                 "INSERT INTO user_become_artist (user_id, artist_id) VALUES (%s, %s)",
-                [user.id, artist.artist_id]
+                [user_id, artist.artist_id]
             )
-        
-        return api_response(code=0, message='升级成功', data={'user_id': user.id, 'artist_id': artist.artist_id, 'name': name})
+        return api_response(code=0, message='升级成功', data={'user_id': user_id, 'artist_id': artist.artist_id, 'name': name})
 
     def partial_update(self, request, *args, **kwargs):
         kwargs['partial'] = True
@@ -54,7 +55,6 @@ class UpgradeArtistView(APIView):
 
 class ArtistProfileView(APIView):
     """歌手个人信息管理"""
-    permission_classes = [permissions.IsAuthenticated]
 
     def get_artist_id(self, user_id):
         with connection.cursor() as cursor:
@@ -62,26 +62,31 @@ class ArtistProfileView(APIView):
             row = cursor.fetchone()
             return row[0] if row else None
 
+    @jwt_required
     def get(self, request):
-        artist_id = self.get_artist_id(request.user.id)
-        if not artist_id:
-            return api_response(code=1, message='您还不是歌手')
-        
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT artist_name, region, bio FROM artist WHERE artist_id=%s", [artist_id])
-            row = cursor.fetchone()
-            if not row:
-                return api_response(code=1, message='歌手信息不存在')
+        try:
+            artist_id = self.get_artist_id(request.user_id)
+            if not artist_id:
+                return api_response(code=1, message='您还不是歌手')
             
-            data = {
-                'name': row[0],
-                'region': row[1],
-                'bio': row[2]
-            }
-            return api_response(data=data)
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT artist_name, region, bio FROM artist WHERE artist_id=%s", [artist_id])
+                row = cursor.fetchone()
+                if not row:
+                    return api_response(code=1, message='歌手信息不存在')
+                
+                data = {
+                    'name': row[0],
+                    'region': row[1],
+                    'bio': row[2]
+                }
+                return api_response(data=data)
+        except Exception as e:
+            return api_response(code=500, message=f'数据库连接失败: {str(e)}', data=None, status_code=500)
 
+    @jwt_required
     def put(self, request):
-        artist_id = self.get_artist_id(request.user.id)
+        artist_id = self.get_artist_id(request.user_id)
         if not artist_id:
             return api_response(code=1, message='您还不是歌手')
         
@@ -102,7 +107,7 @@ class ArtistProfileView(APIView):
 
 # 注销视图：保持简洁，仅返回艺术家相关提示
 class LogoutView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    @jwt_required
     def post(self, request):
         return Response({
             "code": 0,
@@ -112,7 +117,7 @@ class LogoutView(APIView):
 
 # 验证码视图：保留基础逻辑，可根据艺术家模块需求扩展
 class CodeView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    @jwt_required
     def get(self, request):
         # 此处可添加艺术家专属验证码逻辑（如身份验证等）
         return Response({

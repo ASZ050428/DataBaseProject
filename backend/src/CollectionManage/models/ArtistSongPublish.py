@@ -1,17 +1,11 @@
 from django.db import models
-from ArtistManage.models import Artist
-from SongManage.models import Song
 
 class ArtistSongPublish(models.Model):
-    artist_id = models.ForeignKey(
-        Artist, 
-        on_delete=models.CASCADE, 
+    artist_id = models.IntegerField(
         db_column="ARTIST_ID",
         verbose_name="歌手ID"
     )
-    song_id = models.ForeignKey(
-        Song, 
-        on_delete=models.CASCADE, 
+    song_id = models.IntegerField(
         db_column="SONG_ID",
         verbose_name="歌曲ID"
     )

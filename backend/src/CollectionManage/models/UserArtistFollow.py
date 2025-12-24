@@ -3,15 +3,11 @@ from django.contrib.auth.models import User
 from ArtistManage.models import Artist
 
 class UserArtistFollow(models.Model):
-    user_id = models.ForeignKey(
-        User, 
-        on_delete=models.CASCADE, 
+    user_id = models.IntegerField(
         db_column="USER_ID",
         verbose_name="用户ID"
     )
-    artist_id = models.ForeignKey(
-        Artist, 
-        on_delete=models.CASCADE, 
+    artist_id = models.IntegerField(
         db_column="ARTIST_ID",
         verbose_name="歌手ID"
     )

@@ -3,15 +3,11 @@ from django.contrib.auth.models import User
 from AlbumManage.models import Album
 
 class UserAlbumCollect(models.Model):
-    user_id = models.ForeignKey(
-        User, 
-        on_delete=models.CASCADE, 
+    user_id = models.IntegerField(
         db_column="USER_ID",
         verbose_name="用户ID"
     )
-    album_id = models.ForeignKey(
-        Album, 
-        on_delete=models.CASCADE, 
+    album_id = models.IntegerField(
         db_column="ALBUM_ID",
         verbose_name="专辑ID"
     )

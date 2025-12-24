@@ -4,10 +4,8 @@ from ArtistManage.models import Artist  # 关联艺术家模型
 class Song(models.Model):
     song_id = models.AutoField(primary_key=True, verbose_name="歌曲ID")
     title = models.CharField(max_length=200, verbose_name="歌曲标题")
-    artist = models.ForeignKey(
-        Artist, 
-        on_delete=models.CASCADE, 
-        related_name="songs",
+    artist = models.IntegerField(
+        db_column="artist_id",
         verbose_name="所属歌手"
     )
     album_id = models.IntegerField(blank=True, null=True, verbose_name="专辑ID")  # 可改为ForeignKey关联Album
